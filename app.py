@@ -200,3 +200,88 @@ elif st.session_state.current_page == "QC":
                         df.at[idx, 'FG_Status'] = 'ยกเลิก (QC ไม่ผ่าน)'
                         save_data(df)
                         st.rerun()
+# ----------------------------------------------------
+# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - ขั้นตอนการรับงานคลังสินค้า
+# ----------------------------------------------------
+elif current_page == "FG":
+    st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
+    df = st.session_state.current_db
+    
+    # คัดกรองคิวงานค้างรับเข้าคลังสินค้าที่ถูกส่งมาจากด่านก่อนหน้า
+    fg_pending_indices = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'].index.tolist()
+    
+    if not fg_pending_indices:
+        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังสินค้าสำเร็จรูปในระบบขณะนี้")
+    else:
+        for idx in fg_pending_indices:
+            row = df.loc[idx]
+            title_text = f"📦 คิวงาน: {row['JobID']} | รอบส่ง: {row['PD_Shift']} | รหัสสินค้า: {row['SKU']} | ยอดแจ้งส่ง: {row['PD_Qty']:,} ชิ้น"
+            with st.expander(title_text, expanded=True):
+                st.write(f"### รหัสสินค้า (SKU): **{row['SKU']}**")
+                st.write(f"### ปริมาณที่ระบุในใบส่งมอบ: **{row['PD_Qty']:,} ชิ้น**")
+                st.write(f"รอบเวลาส่งงาน: {row['PD_Shift']} | ผู้ส่ง: {row['PD_Name']} | ผลตรวจสเปกจาก QC: **{row['QC_Status']}**")
+                st.write("---")
+                
+                # พนักงานคลังพิมพ์ชื่อผู้ตรวจนับจริง
+                fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริง:", key=f"fg_name_{row['JobID']}")
+                
+                # 🛠️ ขั้นตอนที่ 1: ปุ่มทางเลือกด่วน "ของครบ โค้ดตรงตามใบส่งมอบ"
+                if st.button("✅ ขั้นตอนที่ 1: ยืนยันยอดตรง (ของครบ โค้ดตรง 100%)", key=f"fg_quick_{row['JobID']}", type="primary", use_container_width=True):
+                    if fg_name.strip() != "":
+                        df.at[idx, 'FG_Qty'] = row['PD_Qty']
+                        df.at[idx, 'FG_Name'] = fg_name
+                        df.at[idx, 'FG_Status'] = 'รับเข้าคลังสำเร็จ (Completed)'
+                        save_data(df)
+                        st.success("บันทึกข้อมูลของครบถ้วนเรียบร้อย!")
+                        st.rerun()
+                    else:
+                        st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
+                
+                st.write("")
+                st.markdown("---")
+                st.write("")
+                
+                # 🛠️ ขั้นตอนที่ 2: ช่องป้อนตัวเลขแบบกำหนดเองเผื่อกรณีงานขาด/งานเกิน
+                st.markdown("**ขั้นตอนที่ 2: กรณีตรวจสอบพบจำนวนไม่ตรงตามใบส่งมอบ**")
+                actual_qty = st.number_input("ป้อนจำนวนที่ตรวจนับได้จริงหน้างาน:", min_value=0, step=1, value=int(row['PD_Qty']), key=f"fg_qty_{row['JobID']}")
+                
+                diff = actual_qty - row['PD_Qty']
+                if diff == 0:
+                    st.success("ยอดจำนวนนับตรงกับปริมาณแจ้งในระบบ")
+                elif diff > 0:
+                    st.warning(f"⚠️ ตรวจพบยอดงานเกินจำนวน +{diff} ชิ้น (กรุณาแยกสินค้าส่วนเกินกักไว้ที่โซน Holding Area คลัง)")
+                else:
+                    st.error(f"🚨 ตรวจพบยอดงานขาดจำนวน {diff} ชิ้น")
+                
+                if st.button("💾 บันทึกยอดรับจริงเข้าสต็อก FG", key=f"fg_save_{row['JobID']}", use_container_width=True):
+                    if fg_name.strip() != "":
+                        df.at[idx, 'FG_Qty'] = actual_qty
+                        df.at[idx, 'FG_Name'] = fg_name
+                        df.at[idx, 'FG_Status'] = 'รับเข้าคลังสำเร็จ (Completed)'
+                        save_data(df)
+                        st.success("บันทึกข้อมูลเข้าคลังสำเร็จ!")
+                        st.rerun()
+                    else:
+                        st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
+
+# ----------------------------------------------------
+# 4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin) - ดึงรายงานสรุปยอดลง ERP
+# ----------------------------------------------------
+elif current_page == "ERP":
+    st.header("หน้าจอส่วนงาน: ฝ่ายบริหารข้อมูลคลังสินค้า (ERP Administrator)")
+    st.subheader("รายงานประวัติการหมุนเวียนและตรวจสอบสินค้าเพื่อนำข้อมูลลงระบบ ERP")
+    
+    df = st.session_state.current_db
+    st.dataframe(df, use_container_width=True)
+    
+    # ดึงคิวงานที่ฝ่ายคลัง FG ตรวจนับเสร็จสมบูรณ์แล้วมารวมตารางรอส่งออก
+    completed_jobs = df[df['FG_Status'] == 'รับเข้าคลังสำเร็จ (Completed)']
+    if not completed_jobs.empty:
+        csv = completed_jobs.to_csv(index=False).encode('utf-8-sig')
+        st.download_button(
+            label="📥 ดาวน์โหลดไฟล์รายงาน (.CSV) ยอดรับสินค้าผ่านการตรวจสอบเพื่อใช้คีย์เข้า ERP",
+            data=csv,
+            file_name="Finished_Goods_Verified_Report.csv",
+            mime='text/csv',
+            use_container_width=True
+        )
