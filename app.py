@@ -47,9 +47,12 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = "PD"
 
 # ====================================================
-# NEW SIDEBAR PORTAL: การันตีเปลี่ยนสีปุ่มเมนู 4 แทบด้านซ้าย
+# SIDEBAR NAVIGATION PORTAL
 # ====================================================
-st.sidebar.markdown("## เมนูระบบงานหลัก")
+st.sidebar.markdown("<h2>เมนูระบบงานหลัก</h2>", unsafe_allow_html=True)
+
+status_qc_color = "🔴 มีงานค้าง" if count_qc > 0 else "🟢 เคลียร์หมด"
+status_fg_color = "🔴 มีงานค้าง" if count_fg > 0 else "🟢 เคลียร์หมด"
 
 # 1. แทบฝ่ายผลิต (PD)
 st.sidebar.info("🟢 1. แผนกฝ่ายผลิต (PD)")
@@ -64,7 +67,6 @@ if count_qc > 0:
     st.sidebar.error(f"🔴 2. แผนกควบคุมคุณภาพ (QC) \n(ค้าง {count_qc} รายการ)")
 else:
     st.sidebar.info("🟢 2. แผนกควบคุมคุณภาพ (QC) \n(ไม่มีงานค้าง)")
-    
 if st.sidebar.button("👉 เปิดหน้าตรวจสอบสเปกสินค้า", key="btn_nav_qc", use_container_width=True):
     st.session_state.current_page = "QC"
     st.rerun()
@@ -76,7 +78,6 @@ if count_fg > 0:
     st.sidebar.error(f"🔴 3. แผนกคลังสินค้าสำเร็จรูป (FG) \n(ค้าง {count_fg} รายการ)")
 else:
     st.sidebar.info("🟢 3. แผนกคลังสินค้าสำเร็จรูป (FG) \n(ไม่มีงานค้าง)")
-    
 if st.sidebar.button("👉 เปิดหน้าตรวจนับยอดรับสินค้า", key="btn_nav_fg", use_container_width=True):
     st.session_state.current_page = "FG"
     st.rerun()
@@ -99,19 +100,18 @@ if st.sidebar.button("👉 เปิดรายงานสรุปยอด�
 if st.session_state.current_page == "PD":
     st.subheader("⚙️ ส่วนงานฝ่ายผลิต (Production - PD): บันทึกส่งมอบงานสินค้า")
     pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตผู้บันทึกข้อมูล:")
-    
     st.markdown("#### ตารางรายการรหัสสินค้าที่ต้องการนำส่ง")
+    
     if 'temp_items' not in st.session_state:
         st.session_state.temp_items = []
 
     with st.container(border=True):
-        # 🔥 แก้ไขจุดบั๊กในภาพเรียบร้อย: ดึงค่ากลับมาเป็นรูปแบบกล่องอาร์เรย์ (List) รองรับระบบเวอร์ชันใหม่
-        cols = st.columns(3)
-        with cols[0]:
+        cols_pd = st.columns(3)
+        with cols_pd[0]:
             input_sku = st.text_input("ระบุรหัสสินค้า หรือใช้ปืนสแกนบาร์โค้ดยิง (SKU):", key="input_sku")
-        with cols[1]:
+        with cols_pd[1]:
             input_qty = st.number_input("จำนวนสินค้าที่นำส่งมอบจริง:", min_value=1, step=1, key="input_qty")
-        with cols[2]:
+        with cols_pd[2]:
             st.write("") 
             st.write("") 
             if st.button("➕ เพิ่มเข้าตาราง", use_container_width=True):
@@ -162,7 +162,6 @@ if st.session_state.current_page == "PD":
 # ----------------------------------------------------
 elif st.session_state.current_page == "QC":
     st.subheader("🔍 ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
-    
     df = st.session_state.current_db
     qc_pending_indices = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'].index.tolist()
     
@@ -178,9 +177,10 @@ elif st.session_state.current_page == "QC":
                 st.write(f"เจ้าหน้าที่แผนกผลิตผู้ส่งของ: {row['PD_Name']} | เวลาบันทึกระบบ: {row['Timestamp']}")
                 
                 qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key=f"qc_name_{row['JobID']}")
-                col_qc_btns = st.columns(2)
                 
-                with col_qc_btns[0]:
+                # 🔥 แก้จุดแบ่งคอลัมน์ปุ่มฝั่ง QC ให้เสถียร
+                cols_qc = st.columns(2)
+                with cols_qc[0]:
                     if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ (Approve)", key=f"qc_app_{row['JobID']}", use_container_width=True):
                         if qc_name.strip() != "":
                             df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
@@ -191,7 +191,7 @@ elif st.session_state.current_page == "QC":
                         else:
                             st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
                         
-                with col_qc_btns[1]:
+                with cols_qc[1]:
                     if st.button("❌ ปฏิเสธเกณฑ์/ตีกลับงานเสีย (Reject/NG)", key=f"qc_rej_{row['JobID']}", use_container_width=True):
                         if qc_name.strip() != "":
                             df.at[idx, 'QC_Status'] = 'ตีกลับ/สเปกไม่ผ่าน (NG)'
@@ -203,11 +203,10 @@ elif st.session_state.current_page == "QC":
                             st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
 
 # ----------------------------------------------------
-# 3. หน้าจอส่วนงาน: คลังสินค้าสำเร็จรูป (FG)
+# 3. หน้าจอส่วนงาน: คลังสินค้าสำเร็จรูป (FG) - แก้ไขช่องรับงานเสร็จสมบูรณ์
 # ----------------------------------------------------
 elif st.session_state.current_page == "FG":
     st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
-    
     df = st.session_state.current_db
     fg_pending_indices = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'].index.tolist()
     
@@ -217,6 +216,4 @@ elif st.session_state.current_page == "FG":
         for idx in fg_pending_indices:
             row = df.loc[idx]
             title_text = f"📦 คิวงาน: {row['JobID']} | รหัสสินค้า: {row['SKU']} | ยอดในใบส่ง: {row['PD_Qty']:,} ชิ้น"
-            with st.expander(title_text):
-                st.write(f"### รหัสสินค้า (SKU): **{row['SKU']}**")
-                st.write(f"### ปริมาณนำส่งตามเกณฑ์ระบบ: **{row['PD_Qty']:,} ชิ้น**")
+            with st.expander(title_text, expanded=True): # บังคับให้กางกล่องเปิดออกเห็นข้อมูลทันที
