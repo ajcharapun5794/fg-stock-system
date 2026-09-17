@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 
 # ====================================================
-# ⚙️ CONFIGURATION: ใส่รหัสเชื่อมต่อ Google Sheets ของคุณ
+# CONFIGURATION: Google Sheets Connection
 # ====================================================
 GOOGLE_SHEET_ID = "1Q14RlHndi2CjpA1SgamQAptmDKgCqtN8myuqteritg"
 SHEET_NAME = "Sheet1"
@@ -11,7 +11,7 @@ SHEET_NAME = "Sheet1"
 GSHEET_URL = f"https://google.com{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 
 # ====================================================
-# 💾 FUNCTION: อ่านข้อมูลจากฐานข้อมูล
+# DATABASE FUNCTIONS
 # ====================================================
 def load_data():
     try:
@@ -26,126 +26,190 @@ def save_data(df):
     st.session_state.current_db = df
 
 # ====================================================
-# 🖥️ STREAMLIT FRONTEND (หน้าจอระบบเว็บ)
+# SYSTEM CORE SETUP
 # ====================================================
 st.set_page_config(page_title="FG Stock Management System", layout="wide")
-st.title("📦 ระบบสต็อก FG ป้องกันยอดดิฟ (Connected to Google Sheets)")
+st.title("ระบบบริหารจัดการคลังสินค้าสำเร็จรูปและตรวจสอบคุณภาพ")
+st.write("ระบบบันทึก ตรวจสอบ และเชื่อมโยงข้อมูลปริมาณสินค้าคลังสำเร็จรูป (FG)")
 
 if 'current_db' not in st.session_state:
     st.session_state.current_db = load_data()
 
-user_role = st.sidebar.selectbox("เลือกแผนกของคุณเพื่อเข้าใช้งาน:", ["1. ฝ่ายผลิต (PD)", "2. ควบคุมคุณภาพ (QC)", "3. คลังสินค้า (FG Receiver)", "4. แอดมินสรุปยอด (ERP Admin)"])
+df_current = st.session_state.current_db
+
+# คำนวณจำนวนงานค้างเพื่อทำระบบแจ้งเตือนตัวเลขบนปุ่มเมนูข้าง
+count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
+count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
+
+# 初始化 Navigation State
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "PD"
+
+# ====================================================
+# SIDEBAR PORTAL NAVIGATION (เรียงเมนูลงมาโดยไม่ต้องคลิกเลือก)
+# ====================================================
+st.sidebar.markdown("### เมนูระบบงานหลัก")
+
+# ปุ่มที่ 1: ฝ่ายผลิต
+if st.sidebar.button("1. ฝ่ายผลิต (PD) - บันทึกการส่งมอบสินค้า", use_container_width=True):
+    st.session_state.current_page = "PD"
+    st.status("เปลี่ยนหน้าจอสำเร็จ")
+
+# ปุ่มที่ 2: QC + ป้ายแจ้งเตือนตัวเลขนับงานค้าง
+label_qc = "2. ฝ่ายควบคุมคุณภาพ (QC) - ตรวจสอบสเปก"
+if count_qc > 0:
+    label_qc += f"🔴 (ค้าง {count_qc} รายการ)"
+if st.sidebar.button(label_qc, use_container_width=True):
+    st.session_state.current_page = "QC"
+    st.status("เปลี่ยนหน้าจอสำเร็จ")
+
+# ปุ่มที่ 3: คลังสินค้า FG + ป้ายแจ้งเตือนตัวเลขนับงานค้าง
+label_fg = "3. ฝ่ายคลังสินค้า (FG Receiver) - ตรวจนับยอด"
+if count_fg > 0:
+    label_fg += f"🔴 (ค้าง {count_fg} รายการ)"
+if st.sidebar.button(label_fg, use_container_width=True):
+    st.session_state.current_page = "FG"
+    st.status("เปลี่ยนหน้าจอสำเร็จ")
+
+# ปุ่มที่ 4: แอดมินสรุปยอด
+if st.sidebar.button("4. ฝ่ายบริหารข้อมูลคลังสินค้า (ERP Admin)", use_container_width=True):
+    st.session_state.current_page = "ERP"
+    st.status("เปลี่ยนหน้าจอสำเร็จ")
+
+# ====================================================
+# WORKFLOW PAGES INTERFACE
+# ====================================================
 
 # ----------------------------------------------------
-# 1. ฝ่ายผลิต (PD) - บันทึกงานส่งมอบ
+# INTERFACE 1: ฝ่ายผลิต (PD)
 # ----------------------------------------------------
-if user_role == "1. ฝ่ายผลิต (PD)":
-    st.header("🏭 หน้าจอสำหรับ ฝ่ายผลิต (PD)")
-    with st.form("pd_form", clear_on_submit=True):
-        pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตที่ส่งงาน:")
+if st.session_state.current_page == "PD":
+    st.header("หน้าจอส่วนงาน: ฝ่ายผลิต (Production - PD)")
+    st.subheader("บันทึกการนำส่งมอบสินค้าประจำวัน")
+    
+    pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตผู้บันทึกข้อมูล:", key="pd_operator_name")
+    
+    st.markdown("#### ตารางสรุปรายการสินค้าที่ต้องการส่งมอบในรอบนี้")
+    st.caption("กรุณาระบุรหัสสินค้าและจำนวน จากนั้นกดเพิ่มเข้าตารางเพื่อส่งมอบพร้อมกันหลายรายการ")
+
+    if 'temp_items' not in st.session_state:
+        st.session_state.temp_items = []
+
+    with st.container(border=True):
+        col_sku, col_qty, col_btn = st.columns([5, 3, 2])
+        with col_sku:
+            input_sku = st.text_input("ระบุรหัสสินค้า หรือสแกนบาร์โค้ด (SKU):", key="input_sku")
+        with col_qty:
+            input_qty = st.number_input("จำนวนที่ต้องการส่งมอบ (ชิ้น):", min_value=1, step=1, key="input_qty")
+        with col_btn:
+            st.write("") 
+            st.write("") 
+            if st.button("เพิ่มรายการลงตาราง", use_container_width=True):
+                if input_sku.strip() != "":
+                    st.session_state.temp_items.append({'SKU': input_sku.strip(), 'Qty': input_qty})
+                else:
+                    st.error("กรุณาระบุรหัสสินค้าให้ถูกต้อง")
+
+    if st.session_state.temp_items:
+        df_temp = pd.DataFrame(st.session_state.temp_items)
+        st.table(df_temp)
         
-        # 🔥 แก้ไขเป็นช่องให้พิมพ์รหัส/ยิงบาร์โค้ดเองตามต้องการแล้วครับ ไม่ต้องกดเลือกแล้ว!
-        sku = st.text_input("พิมพ์รหัสสินค้า หรือใช้ปืนสแกนบาร์โค้ดยิง (SKU):")
-        
-        pd_qty = st.number_input("จำนวนที่ผลิตและต้องการส่งมอบจริง (ชิ้น/พาเลท):", min_value=1, step=1)
-        submit_pd = st.form_submit_button("🚀 ส่งงานให้ QC ตรวจสอบ")
-        
-        if submit_pd and pd_name and sku:
-            df = st.session_state.current_db
-            new_id = len(df) + 1
-            job_id = f"JOB-{new_id:04d}"
-            new_data = {
-                'JobID': job_id, 'Timestamp': datetime.now().strftime("%Y-%m-%d %H:%M"),
-                'PD_Name': pd_name, 'SKU': sku, 'PD_Qty': pd_qty,
-                'QC_Status': 'รอ QC ตรวจสอบ (Pending QC)', 'QC_Name': '-',
-                'FG_Qty': 0, 'FG_Status': 'รอผ่าน QC', 'FG_Name': '-'
-            }
-            df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-            save_data(df)
-            st.success(f"บันทึกข้อมูลสำเร็จ! คิวงาน {job_id} ส่งต่อไปหน้าจอทีม QC เรียบร้อยแล้ว")
-        elif submit_pd:
-            st.error("กรุณากรอกข้อมูลชื่อผู้ส่งและรหัสสินค้าให้ครบถ้วน")
+        if st.button("ล้างรายการในตารางทั้งหมด", use_container_width=True):
+            st.session_state.temp_items = []
+            st.status("ล้างตารางข้อมูลสำเร็จ")
+            st.rerun()
+            
+        st.write("---")
+        if st.button("ยืนยันการนำส่งข้อมูลทั้งหมดให้ฝ่ายควบคุมคุณภาพ (QC)", type="primary", use_container_width=True):
+            if pd_name.strip() == "":
+                st.error("กรุณาระบุชื่อพนักงานฝ่ายผลิตผู้บันทึกข้อมูลก่อนกดยืนยัน")
+            else:
+                df = st.session_state.current_db
+                timestamp_now = datetime.now().strftime("%Y-%m-%d %H:%M")
+                
+                for item in st.session_state.temp_items:
+                    new_id = len(df) + 1
+                    job_id = f"JOB-{new_id:04d}"
+                    new_data = {
+                        'JobID': job_id, 'Timestamp': timestamp_now,
+                        'PD_Name': pd_name, 'SKU': item['SKU'], 'PD_Qty': item['Qty'],
+                        'QC_Status': 'รอ QC ตรวจสอบ (Pending QC)', 'QC_Name': '-',
+                        'FG_Qty': 0, 'FG_Status': 'รอผ่าน QC', 'FG_Name': '-'
+                    }
+                    df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
+                
+                save_data(df)
+                st.session_state.temp_items = []
+                st.success(f"บันทึกข้อมูลลงระบบคลาวด์สำเร็จ ส่งต่อข้อมูลเข้าคิวงานฝ่ายควบคุมคุณภาพ (QC) เรียบร้อยแล้ว")
+                st.rerun()
+    else:
+        st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
 # ----------------------------------------------------
-# 2. ควบคุมคุณภาพ (QC) - ตรวจสอบสเปกสินค้า
+# INTERFACE 2: ควบคุมคุณภาพ (QC)
 # ----------------------------------------------------
-elif user_role == "2. ควบคุมคุณภาพ (QC)":
-    st.header("🔍 หน้าจอสำหรับ ตรวจสอบคุณภาพ (QC)")
+elif st.session_state.current_page == "QC":
+    st.header("หน้าจอส่วนงาน: ฝ่ายควบคุมคุณภาพ (Quality Control - QC)")
+    st.subheader("รายการสินค้าค้างตรวจสอบเกณฑ์มาตรฐานคุณภาพสินค้า")
+    
     df = st.session_state.current_db
     qc_pending = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)']
     
     if qc_pending.empty:
-        st.info("🎉 ไม่มีงานค้างตรวจคุณภาพในขณะนี้")
+        st.info("ไม่มีรายการสินค้าค้างตรวจสอบคุณภาพในระบบขณะนี้")
     else:
         for idx, row in qc_pending.iterrows():
-            with st.expander(f"📌 คิวงาน: {row['JobID']} | สินค้า: {row['SKU']} | จำนวน: {row['PD_Qty']} ชิ้น"):
-                qc_name = st.text_input("ชื่อพนักงาน QC ผู้ตรวจ:", key=f"qc_name_{row['JobID']}")
+            with st.expander(f"รหัสคิวงาน: {row['JobID']} | รหัสสินค้า: {row['SKU']} | จำนวนจากฝ่ายผลิต: {row['PD_Qty']} ชิ้น"):
+                st.write(f"ผู้บันทึกนำส่ง: {row['PD_Name']} | เวลาบันทึกข้อมูล: {row['Timestamp']}")
+                qc_name = st.text_input("ชื่อพนักงานตรวจสอบคุณภาพ (QC):", key=f"qc_name_{row['JobID']}")
                 col1, col2 = st.columns(2)
                 
                 with col1:
-                    if st.button("✅ สเปกผ่าน (Approve)", key=f"qc_app_{row['JobID']}") and qc_name:
+                    if st.button("อนุมัติมาตรฐานผ่านเกณฑ์ (Approve)", key=f"qc_app_{row['JobID']}") and qc_name:
                         df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
                         df.at[idx, 'QC_Name'] = qc_name
                         df.at[idx, 'FG_Status'] = 'รอคลังรับเข้า (Pending FG)'
                         save_data(df)
-                        st.success("อนุมัติสเปกผ่านสำเร็จ! ส่งงานต่อให้คลัง FG")
                         st.rerun()
                         
                 with col2:
-                    if st.button("❌ สเปกไม่ผ่าน (Reject/NG)", key=f"qc_rej_{row['JobID']}") and qc_name:
-                        df.at[idx, 'QC_Status'] = '❌ ตีกลับ/สเปกไม่ผ่าน (NG)'
+                    if st.button("ปฏิเสธมาตรฐาน/ตีกลับงานเสีย (Reject/NG)", key=f"qc_rej_{row['JobID']}") and qc_name:
+                        df.at[idx, 'QC_Status'] = 'ตีกลับ/สเปกไม่ผ่าน (NG)'
                         df.at[idx, 'QC_Name'] = qc_name
-                        df.at[idx, 'FG_Status'] = '❌ ยกเลิก (QC ไม่ผ่าน)'
+                        df.at[idx, 'FG_Status'] = 'ยกเลิก (QC ไม่ผ่าน)'
                         save_data(df)
-                        st.error("ปฏิเสธงานเสียสำเร็จ ยอดจะถูกตีกลับทันที")
                         st.rerun()
 
 # ----------------------------------------------------
-# 3. คลังสินค้า (FG Receiver) - ตรวจนับของจริง
+# INTERFACE 3: คลังสินค้า (FG Receiver)
 # ----------------------------------------------------
-elif user_role == "3. คลังสินค้า (FG Receiver)":
-    st.header("📥 หน้าจอสำหรับ คนรับงานคลังสินค้า (FG Receiver)")
+elif st.session_state.current_page == "FG":
+    st.header("หน้าจอส่วนงาน: ฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG)")
+    st.subheader("รายการตรวจสอบปริมาณสินค้านำเข้าคลังจริง")
+    
     df = st.session_state.current_db
     fg_pending = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)']
     
     if fg_pending.empty:
-        st.info("👍 ไม่มีสินค้าค้างรับเข้าคลังในขณะนี้")
+        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังในระบบขณะนี้")
     else:
         for idx, row in fg_pending.iterrows():
-            with st.expander(f"📦 คิวงาน: {row['JobID']} | สินค้า: {row['SKU']} | ยอดในใบส่ง: {row['PD_Qty']} ชิ้น"):
-                fg_name = st.text_input("ชื่อพนักงานคลังผู้นับของจริง:", key=f"fg_name_{row['JobID']}")
-                actual_qty = st.number_input("ป้อนจำนวนที่นับได้จริงหน้างาน:", min_value=0, step=1, value=int(row['PD_Qty']), key=f"fg_qty_{row['JobID']}")
+            with st.expander(f"รหัสคิวงาน: {row['JobID']} | รหัสสินค้า: {row['SKU']} | ยอดแจ้งจากฝ่ายผลิต: {row['PD_Qty']} ชิ้น"):
+                st.write(f"เจ้าหน้าที่ยืนยันคุณภาพสเปกสินค้า: {row['QC_Name']}")
+                fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริง:", key=f"fg_name_{row['JobID']}")
+                actual_qty = st.number_input("ป้อนจำนวนที่ตรวจนับได้จริงหน้างาน:", min_value=0, step=1, value=int(row['PD_Qty']), key=f"fg_qty_{row['JobID']}")
                 
                 diff = actual_qty - row['PD_Qty']
                 if diff == 0:
-                    st.success("🟢 ยอดนับจริง ตรงกับยอดในระบบ")
+                    st.success("ปริมาณนับรับจริงตรงกับยอดระบบบันทึก")
                 elif diff > 0:
-                    st.warning(f"⚠️ งานเกินมา +{diff} ชิ้น (กรุณาแยกของเกินไว้ที่ Holding Area)")
+                    st.warning(f"ตรวจสอบพบรายการสินค้าเกินระบบคิวงานจำนวน +{diff} ชิ้น (โปรดแยกสินค้าไว้ที่พื้นที่ Holding Area)")
                 else:
-                    st.error(f"🚨 งานขาดไป {diff} ชิ้น")
+                    st.error(f"ตรวจสอบพบรายการสินค้าขาดระบบคิวงานจำนวน {diff} ชิ้น")
                 
-                if st.button("💾 บันทึกการรับเข้าสต็อก FG", key=f"fg_save_{row['JobID']}") and fg_name:
+                if st.button("บันทึกรับสินค้าเข้าคลังสำเร็จ", key=f"fg_save_{row['JobID']}") and fg_name:
                     df.at[idx, 'FG_Qty'] = actual_qty
                     df.at[idx, 'FG_Name'] = fg_name
                     df.at[idx, 'FG_Status'] = 'รับเข้าคลังสำเร็จ (Completed)'
                     save_data(df)
-                    st.success("บันทึกการรับของเข้าคลังเสร็จสิ้น ยอดพร้อมส่งเข้า ERP")
                     st.rerun()
-
-# ----------------------------------------------------
-# 4. แอดมินสรุปยอด (ERP Admin) - ดึงยอดชัวร์ไปลง ERP
-# ----------------------------------------------------
-elif user_role == "4. แอดมินสรุปยอด (ERP Admin)":
-    st.header("📊 หน้าจอสำหรับตัวคุณ (Stock FG / ERP Admin)")
-    df = st.session_state.current_db
-    st.dataframe(df, use_container_width=True)
-    
-    completed_jobs = df[df['FG_Status'] == 'รับเข้าคลังสำเร็จ (Completed)']
-    if not completed_jobs.empty:
-        csv = completed_jobs.to_csv(index=False).encode('utf-8-sig')
-        st.download_button(
-            label="📥 ดาวน์โหลดไฟล์สำหรับคีย์เข้า ERP (ยอดชัวร์ 100%)",
-            data=csv,
-            file_name="Ready_to_ERP.csv",
-            mime='text/csv',
-        )
