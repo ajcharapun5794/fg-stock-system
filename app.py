@@ -49,44 +49,42 @@ if 'current_page' not in st.session_state:
 # ====================================================
 # NEW SIDEBAR PORTAL: การันตีเปลี่ยนสีปุ่มเมนู 4 แทบด้านซ้าย
 # ====================================================
-st.sidebar.markdown("<h2>เมนูระบบงานหลัก</h2>", unsafe_allow_html=True)
-
-status_qc_color = "🔴 มีงานค้าง" if count_qc > 0 else "🟢 เคลียร์หมด"
-status_fg_color = "🔴 มีงานค้าง" if count_fg > 0 else "🟢 เคลียร์หมด"
-
-st.sidebar.markdown(
-    f"""
-    <style>
-    .nav-box {{ padding: 12px; border-radius: 8px; margin-bottom: 10px; font-weight: bold; text-align: center; }}
-    .status-green {{ background-color: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }}
-    .status-red {{ background-color: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; }}
-    .status-blue {{ background-color: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }}
-    </style>
-    """, unsafe_allow_html=True
-)
+st.sidebar.markdown("## เมนูระบบงานหลัก")
 
 # 1. แทบฝ่ายผลิต (PD)
-st.sidebar.markdown('<div class="nav-box status-green">1. แผนกฝ่ายผลิต (PD)</div>', unsafe_allow_html=True)
+st.sidebar.info("🟢 1. แผนกฝ่ายผลิต (PD)")
 if st.sidebar.button("👉 เปิดหน้าบันทึกส่งมอบงาน", key="btn_nav_pd", use_container_width=True):
     st.session_state.current_page = "PD"
     st.rerun()
 
+st.sidebar.write("")
+
 # 2. แทบฝ่ายควบคุมคุณภาพ (QC)
-class_qc = "status-red" if count_qc > 0 else "status-green"
-st.sidebar.markdown(f'<div class="nav-box {class_qc}">2. แผนกควบคุมคุณภาพ (QC)<br><small>สถานะ: {status_qc_color} ({count_qc} รายการ)</small></div>', unsafe_allow_html=True)
+if count_qc > 0:
+    st.sidebar.error(f"🔴 2. แผนกควบคุมคุณภาพ (QC) \n(ค้าง {count_qc} รายการ)")
+else:
+    st.sidebar.info("🟢 2. แผนกควบคุมคุณภาพ (QC) \n(ไม่มีงานค้าง)")
+    
 if st.sidebar.button("👉 เปิดหน้าตรวจสอบสเปกสินค้า", key="btn_nav_qc", use_container_width=True):
     st.session_state.current_page = "QC"
     st.rerun()
 
+st.sidebar.write("")
+
 # 3. แทบฝ่ายคลังสินค้า (FG)
-class_fg = "status-red" if count_fg > 0 else "status-green"
-st.sidebar.markdown(f'<div class="nav-box {class_fg}">3. แผนกคลังสินค้าสำเร็จรูป (FG)<br><small>สถานะ: {status_fg_color} ({count_fg} รายการ)</small></div>', unsafe_allow_html=True)
+if count_fg > 0:
+    st.sidebar.error(f"🔴 3. แผนกคลังสินค้าสำเร็จรูป (FG) \n(ค้าง {count_fg} รายการ)")
+else:
+    st.sidebar.info("🟢 3. แผนกคลังสินค้าสำเร็จรูป (FG) \n(ไม่มีงานค้าง)")
+    
 if st.sidebar.button("👉 เปิดหน้าตรวจนับยอดรับสินค้า", key="btn_nav_fg", use_container_width=True):
     st.session_state.current_page = "FG"
     st.rerun()
 
+st.sidebar.write("")
+
 # 4. แทบฝ่ายแอดมิน ERP
-st.sidebar.markdown('<div class="nav-box status-blue">4. ฝ่ายบริหารข้อมูลคลัง (ERP)</div>', unsafe_allow_html=True)
+st.sidebar.success("📊 4. ฝ่ายบริหารข้อมูลคลัง (ERP)")
 if st.sidebar.button("👉 เปิดรายงานสรุปยอดลง ERP", key="btn_nav_erp", use_container_width=True):
     st.session_state.current_page = "ERP"
     st.rerun()
@@ -107,12 +105,13 @@ if st.session_state.current_page == "PD":
         st.session_state.temp_items = []
 
     with st.container(border=True):
-        col_sku, col_qty, col_btn = st.columns(3)
-        with col_sku:
+        # 🔥 แก้ไขจุดบั๊กในภาพเรียบร้อย: ดึงค่ากลับมาเป็นรูปแบบกล่องอาร์เรย์ (List) รองรับระบบเวอร์ชันใหม่
+        cols = st.columns(3)
+        with cols[0]:
             input_sku = st.text_input("ระบุรหัสสินค้า หรือใช้ปืนสแกนบาร์โค้ดยิง (SKU):", key="input_sku")
-        with col_qty:
+        with cols[1]:
             input_qty = st.number_input("จำนวนสินค้าที่นำส่งมอบจริง:", min_value=1, step=1, key="input_qty")
-        with col_btn:
+        with cols[2]:
             st.write("") 
             st.write("") 
             if st.button("➕ เพิ่มเข้าตาราง", use_container_width=True):
@@ -179,9 +178,9 @@ elif st.session_state.current_page == "QC":
                 st.write(f"เจ้าหน้าที่แผนกผลิตผู้ส่งของ: {row['PD_Name']} | เวลาบันทึกระบบ: {row['Timestamp']}")
                 
                 qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key=f"qc_name_{row['JobID']}")
-                col1, col2 = st.columns(2)
+                col_qc_btns = st.columns(2)
                 
-                with col1:
+                with col_qc_btns[0]:
                     if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ (Approve)", key=f"qc_app_{row['JobID']}", use_container_width=True):
                         if qc_name.strip() != "":
                             df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
@@ -192,7 +191,7 @@ elif st.session_state.current_page == "QC":
                         else:
                             st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
                         
-                with col2:
+                with col_qc_btns[1]:
                     if st.button("❌ ปฏิเสธเกณฑ์/ตีกลับงานเสีย (Reject/NG)", key=f"qc_rej_{row['JobID']}", use_container_width=True):
                         if qc_name.strip() != "":
                             df.at[idx, 'QC_Status'] = 'ตีกลับ/สเปกไม่ผ่าน (NG)'
@@ -207,3 +206,17 @@ elif st.session_state.current_page == "QC":
 # 3. หน้าจอส่วนงาน: คลังสินค้าสำเร็จรูป (FG)
 # ----------------------------------------------------
 elif st.session_state.current_page == "FG":
+    st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
+    
+    df = st.session_state.current_db
+    fg_pending_indices = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'].index.tolist()
+    
+    if not fg_pending_indices:
+        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังสินค้าสำเร็จรูปในระบบขณะนี้")
+    else:
+        for idx in fg_pending_indices:
+            row = df.loc[idx]
+            title_text = f"📦 คิวงาน: {row['JobID']} | รหัสสินค้า: {row['SKU']} | ยอดในใบส่ง: {row['PD_Qty']:,} ชิ้น"
+            with st.expander(title_text):
+                st.write(f"### รหัสสินค้า (SKU): **{row['SKU']}**")
+                st.write(f"### ปริมาณนำส่งตามเกณฑ์ระบบ: **{row['PD_Qty']:,} ชิ้น**")
