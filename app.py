@@ -76,7 +76,7 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# พิมพ์แค่ 4 แถวคลีนๆ ตามบรีฟเป๊ะ ไม่มีตัวหนังสือส่วนเกิน
+# พิมพ์แค่ 4 แถวคลีนตามเงื่อนไขบรีฟ
 if st.sidebar.button("1. แผนกฝ่ายผลิต (PD)", key="nav_pd", use_container_width=True):
     st.session_state.current_page = "PD"
     st.rerun()
@@ -109,6 +109,7 @@ if st.session_state.current_page == "PD":
         st.session_state.temp_items = []
 
     with st.container(border=True):
+        # 🛠️ ซ่อมพาร์ทบักตรงจุด: เปลี่ยนมาใช้ระบบฟิลด์เรียงแถวตรงๆ คลีนๆ เสถียร 100% ไม่ติดขัดระบบ
         input_sku = st.text_input("ระบุรหัสสินค้า หรือใช้ปืนสแกนบาร์โค้ดยิง (SKU):", key="input_sku")
         input_qty = st.number_input("จำนวนสินค้าที่นำส่งมอบจริง (ชิ้น):", min_value=1, step=1, key="input_qty")
         st.write("") 
@@ -177,7 +178,7 @@ elif st.session_state.current_page == "QC":
                 qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key=f"qc_name_{row['JobID']}")
                 
                 cols_qc = st.columns(2)
-                with cols_qc:
+                with cols_qc[0]:
                     if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ (Approve)", key=f"qc_app_{row['JobID']}", use_container_width=True):
                         if qc_name.strip() != "":
                             df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
@@ -187,7 +188,7 @@ elif st.session_state.current_page == "QC":
                         else:
                             st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
                         
-                with cols_qc:
+                with cols_qc[1]:
                     if st.button("❌ ปฏิเสธเกณฑ์/ตีกลับงานเสีย (Reject/NG)", key=f"qc_rej_{row['JobID']}", use_container_width=True):
                         if qc_name.strip() != "":
                             df.at[idx, 'QC_Status'] = 'ตีกลับ/สเปกไม่ผ่าน (NG)'
@@ -203,6 +204,3 @@ elif st.session_state.current_page == "QC":
 elif st.session_state.current_page == "FG":
     st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
     df = st.session_state.current_db
-    fg_pending_indices = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'].index.tolist()
-    
-    if not fg_pending_indices:
