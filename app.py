@@ -68,7 +68,7 @@ st.sidebar.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown('<div class="nav-badge c-green">1. แผนกฝ่ายผลิต (PD) <br><small>🟢 Status ปกติ</small></div>', unsafe_allow_html=True)
+st.sidebar.markdown('<div class="nav-badge c-green">1. แผนกฝ่ายผลิต (PD) <br><small>🟢 สถานะปกติ</small></div>', unsafe_allow_html=True)
 nav_pd = st.sidebar.button("👉 เปิดหน้าจอ ฝ่ายผลิต", key="go_pd", use_container_width=True)
 
 st.sidebar.markdown(f'<div class="nav-badge c-qc-dynamic">2. แผนกควบคุมคุณภาพ (QC) <br><small>{txt_qc_status}</small></div>', unsafe_allow_html=True)
@@ -93,7 +93,7 @@ if nav_erp: st.session_state.current_page = "ERP"; st.rerun()
 # ====================================================
 
 # ----------------------------------------------------
-# 1. แผนกฝ่ายผลิต (PD)
+# 1. แผนกฝ่ายผลิต (PD) - บันทึก ชื่อ, รอบเวลา, รหัสสินค้า, จำนวน (สะสมหลายโค้ดได้)
 # ----------------------------------------------------
 if st.session_state.current_page == "PD":
     st.subheader("⚙️ ส่วนงานฝ่ายผลิต (Production - PD): บันทึกส่งมอบงานสินค้า")
@@ -117,8 +117,6 @@ if st.session_state.current_page == "PD":
 
     if st.session_state.temp_items:
         df_temp = pd.DataFrame(st.session_state.temp_items)
-        
-        # เพิ่มระบบติ๊กเลือกรายการในตารางชั่วคราวเพื่อกดลบได้
         df_temp_idx = df_temp.copy()
         df_temp_idx.insert(0, 'เลือกเพื่อลบ', False)
         
@@ -127,8 +125,7 @@ if st.session_state.current_page == "PD":
         
         col_pd_del, col_pd_send = st.columns(2)
         with col_pd_del:
-            if st.button("🗑️ ลบรายการส่งมอบที่เลือก", use_container_width=True):
-                # กรองเอาตัวที่ไม่ได้ติ๊กถูกกลับมาเก็บไว้
+            if st.button("🗑️ ล้างรายการส่งมอบที่เลือก", use_container_width=True):
                 keep_indices = edited_temp[edited_temp['เลือกเพื่อลบ'] == False].index.tolist()
                 st.session_state.temp_items = [st.session_state.temp_items[i] for i in keep_indices]
                 st.success("ลบรายการที่เลือกเรียบร้อย")
@@ -161,7 +158,7 @@ if st.session_state.current_page == "PD":
         st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
 # ----------------------------------------------------
-# 2. แผนกควบคุมคุณภาพ (QC)
+# 2. แผนกควบคุมคุณภาพ (QC) - เลือกหลายโค้ด ผ่านยกแผงในปุ่มเดียว
 # ----------------------------------------------------
 elif st.session_state.current_page == "QC":
     st.subheader("🔍 ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
@@ -191,3 +188,99 @@ elif st.session_state.current_page == "QC":
                     st.error("กรุณาคลิกเลือกรายการคิวงานสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
                 else:
                     for option in selected_qc_jobs:
+                        job_id_extracted = options_map_qc[option] 
+                        
+#----------------------------------------------------
+# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - เลือกหลายโค้ด อนุมัติรับงานยกแผงปุ่มเดียวส่งต่อด่าน 4 ได้จริง 100%
+# ----------------------------------------------------
+elif st.session_state.current_page == "FG":
+    st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
+    df = st.session_state.current_db
+    fg_pending_list = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)']
+    
+    if fg_pending_list.empty:
+        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังสินค้าสำเร็จรูปในระบบขณะนี้")
+    else:
+        st.write("### 📦 รายการสินค้าค้างนับรับเข้าสต็อก")
+        fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริง:", key="fg_global_name")
+        
+        options_map_fg = {}
+        for _, r in fg_pending_list.iterrows():
+            display_text = f"📦 คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดแจ้งส่ง: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']}) | QC ผู้ตรวจ: {r['QC_Name']}"
+            options_map_fg[display_text] = r['JobID']
+            
+        selected_fg_jobs = st.multiselect("คลิกเลือกคิวงานสินค้าที่ต้องการรับเข้าสต็อกคลังพร้อมกันหลายรายการ:", list(options_map_fg.keys()))
+        
+        st.write("---")
+        # ปุ่มหลัก: บันทึกรับของเข้าคลังแบบยกแผงปุ่มเดียวผ่านฉลุย ยอดวิ่งไปหน้าแอดมินส่วนที่ 4 ทันที
+        if st.button("💾 ยืนยันบันทึกรับสินค้าเข้าสต็อกทุกรายการที่เลือก (Approve ยกแผง)", type="primary", use_container_width=True):
+            if fg_name.strip() == "":
+                st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
+            elif not selected_fg_jobs:
+                st.error("กรุณาคลิกเลือกรายการคิวงานสินค้าที่ต้องการรับเข้าสต็อกอย่างน้อย 1 รายการ")
+            else:
+                for option in selected_fg_jobs:
+                    job_id_extracted = options_map_fg[option]
+                    idx = df[df['JobID'] == job_id_extracted].index
+                    # ใช้คำสั่งระบุพิกัดตรงตัว .loc เพื่อให้ระบบคัดลอกค่าจำนวนเซฟทับและผลักข้อมูลไปส่วนที่ 4 ได้ทันที ไม่พังแถบชมพู
+                    df.loc[idx, 'FG_Qty'] = df.loc[idx, 'PD_Qty'].values
+                    df.loc[idx, 'FG_Name'] = fg_name
+                    df.loc[idx, 'FG_Status'] = 'รับเข้าคลังสำเร็จ (Completed)'
+                save_data(df)
+                st.success(f"คลังสินค้า FG บันทึกรับเข้าสต็อกสำเร็จ {len(selected_fg_jobs)} รายการ! ยอดถูกจัดส่งไปหน้าตารางสรุปผลแอดมิน ERP แล้ว")
+                st.rerun()
+                
+        if st.button("🗑️ ลบคิวงานคลัง FG ที่เลือกออกจากระบบ", use_container_width=True):
+            if not selected_fg_jobs:
+                st.error("กรุณาเลือกรายการคิวงานที่ต้องการลบก่อนกดปุ่ม")
+            else:
+                for option in selected_fg_jobs:
+                    job_id_extracted = options_map_fg[option]
+                    df = df[df['JobID'] != job_id_extracted]
+                save_data(df)
+                st.success("ลบรายการคิวงานที่เลือกออกจากระบบสำเร็จแล้ว!")
+                st.rerun()
+
+# ----------------------------------------------------
+# 4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin) - ยอดรับจริงหน้างาน 100% พร้อมปุ่มโหลดไฟล์ลง ERP
+# ----------------------------------------------------
+elif st.session_state.current_page == "ERP":
+    st.header("หน้าจอส่วนงาน: ฝ่ายบริหารข้อมูลคลังสินค้า (ERP Administrator)")
+    st.subheader("รายงานสรุปตรวจสอบยอดรับจริงหน้างาน 100% เพื่อนำข้อมูลคีย์ลงระบบ ERP")
+    
+    df = st.session_state.current_db
+    df_erp_display = df.copy()
+    df_erp_display.insert(0, 'เลือกเพื่อลบ', False)
+    
+    edited_erp_df = st.data_editor(
+        df_erp_display[['เลือกเพื่อลบ', 'JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty', 'QC_Status', 'QC_Name', 'FG_Qty', 'FG_Status', 'FG_Name']],
+        hide_index=True,
+        use_container_width=True,
+        disabled=['JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty', 'QC_Status', 'QC_Name', 'FG_Qty', 'FG_Status', 'FG_Name']
+    )
+    
+    st.write("---")
+    col_admin1, col_admin2 = st.columns(2)
+    with col_admin1:
+        completed_jobs = df[df['FG_Status'] == 'รับเข้าคลังสำเร็จ (Completed)']
+        if not completed_jobs.empty:
+            csv = completed_jobs.to_csv(index=False).encode('utf-8-sig')
+            st.download_button(
+                label="📥 ดาวน์โหลดไฟล์รายงานยอดรับจริง (.CSV) สำหรับนำข้อมูลอัปโหลดเข้า ERP ของบริษัททันที",
+                data=csv,
+                file_name="Finished_Goods_Verified_Report.csv",
+                mime='text/csv',
+                use_container_width=True
+            )
+            
+    with col_admin2:
+        if st.button("🚨 ลบข้อมูลประวัติที่เลือกออกจากฐานข้อมูลถาวร", use_container_width=True):
+            selected_del_jobs = edited_erp_df[edited_erp_df['เลือกเพื่อลบ'] == True]['JobID'].tolist()
+            if not selected_del_jobs:
+                st.error("กรุณาติ๊กถูกหน้าคิวงานที่ต้องการลบในตารางสรุปผลก่อนกดปุ่ม")
+            else:
+                for job in selected_del_jobs:
+                    df = df[df['JobID'] != job]
+                save_data(df)
+                st.success(f"ลบข้อมูลคิวงานออกจากระบบถาวรเรียบร้อยแล้วจำนวน {len(selected_del_jobs)} รายการ!")
+                st.rerun()
