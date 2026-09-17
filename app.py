@@ -7,10 +7,11 @@ from datetime import datetime
 # ====================================================
 GOOGLE_SHEET_ID = "1Q14RlHndi2CjpA1SgamQAptmDKgCqtN8myuqteritg"
 SHEET_NAME = "Sheet1"
+
 GSHEET_URL = f"https://google.com{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 
 # ====================================================
-# DATABASE FUNCTIONS (ระบบฐานข้อมูลประคองสถานะงานไม่ให้หลุดหาย)
+# DATABASE FUNCTIONS
 # ====================================================
 if 'mock_db' not in st.session_state:
     st.session_state.mock_db = pd.DataFrame(columns=[
@@ -38,7 +39,7 @@ if 'current_db' not in st.session_state:
 
 df_current = st.session_state.current_db
 
-# ดึงจำนวนงานค้างที่แท้จริง
+# คำนวณจำนวนงานค้างเพื่อเปลี่ยนสีปุ่มเมนูซ้ายมือ
 count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
 count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
 
@@ -46,12 +47,13 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = "PD"
 
 # ====================================================
-# SIDEBAR PORTAL NAVIGATION
+# SIDEBAR PORTAL: ระบบ 4 แถวปุ่มกดเปลี่ยนสี เขียว/แดง อัตโนมัติ
 # ====================================================
 st.sidebar.markdown("## เมนูระบบงานหลัก")
 
-status_qc_text = f"🔴 ค้าง {count_qc} รายการ" if count_qc > 0 else "🟢 ไม่มีงานค้าง"
-status_fg_text = f"🔴 ค้าง {count_fg} รายการ" if count_fg > 0 else "🟢 ไม่มีงานค้าง"
+# ตรรกะสี: ไม่มีงานค้าง = เขียวอ่อน (#E8F5E9) / มีงานค้าง = แดงอ่อน (#FFEBEE)
+color_pd_bg = "#E8F5E9"
+color_pd_txt = "#1B5E20"
 
 color_qc_bg = "#FFEBEE" if count_qc > 0 else "#E8F5E9"
 color_qc_txt = "#B71C1C" if count_qc > 0 else "#1B5E20"
@@ -61,38 +63,33 @@ color_fg_bg = "#FFEBEE" if count_fg > 0 else "#E8F5E9"
 color_fg_txt = "#B71C1C" if count_fg > 0 else "#1B5E20"
 color_fg_border = "#EF9A9A" if count_fg > 0 else "#A5D6A7"
 
-st.sidebar.markdown(f"""
+color_erp_bg = "#E8F5E9"
+color_erp_txt = "#1B5E20"
+
+st.markdown(f"""
     <style>
-    .nav-header {{ padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-top: 15px; margin-bottom: 5px; font-size: 14px; }}
-    .c-pd {{ background-color: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }}
-    .c-qc {{ background-color: {color_qc_bg}; color: {color_qc_txt}; border: 1px solid {color_qc_border}; }}
-    .c-fg {{ background-color: {color_fg_bg}; color: {color_fg_txt}; border: 1px solid {color_fg_border}; }}
-    .c-erp {{ background-color: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }}
-    div[data-testid="stSidebarUserContent"] button {{ font-weight: bold !important; font-size: 15px !important; }}
+    div.stButton > button {{ font-weight: bold !important; font-size: 15px !important; padding: 14px !important; border-radius: 8px !important; margin-bottom: 5px !important; }}
+    .st-emotion-cache-164746f > div:nth-child(2) button {{ background-color: {color_pd_bg} !important; color: {color_pd_txt} !important; border: 1px solid #A5D6A7 !important; }}
+    .st-emotion-cache-164746f > div:nth-child(3) button {{ background-color: {color_qc_bg} !important; color: {color_qc_txt} !important; border: 1px solid {color_qc_border} !important; }}
+    .st-emotion-cache-164746f > div:nth-child(4) button {{ background-color: {color_fg_bg} !important; color: {color_fg_txt} !important; border: 1px solid {color_fg_border} !important; }}
+    .st-emotion-cache-164746f > div:nth-child(5) button {{ background-color: {color_erp_bg} !important; color: {color_erp_txt} !important; border: 1px solid #A5D6A7 !important; }}
     </style>
 """, unsafe_allow_html=True)
 
-# 1. แผนกฝ่ายผลิต (PD)
-st.sidebar.markdown('<div class="nav-header c-pd">1. แผนกฝ่ายผลิต (PD)</div>', unsafe_allow_html=True)
-if st.sidebar.button("👉 เข้าสู่หน้าบันทึกส่งมอบงาน", key="nav_pd", use_container_width=True):
+# พิมพ์แค่ 4 แถวคลีนๆ ตามบรีฟเป๊ะ ไม่มีตัวหนังสือส่วนเกิน
+if st.sidebar.button("1. แผนกฝ่ายผลิต (PD)", key="nav_pd", use_container_width=True):
     st.session_state.current_page = "PD"
     st.rerun()
 
-# 2. แผนกควบคุมคุณภาพ (QC)
-st.sidebar.markdown(f'<div class="nav-header c-qc">2. แผนกควบคุมคุณภาพ (QC)<br><small>{status_qc_text}</small></div>', unsafe_allow_html=True)
-if st.sidebar.button("👉 เข้าสู่หน้าตรวจสอบสเปก", key="nav_qc", use_container_width=True):
+if st.sidebar.button("2. แผนกควบคุมคุณภาพ (QC)", key="nav_qc", use_container_width=True):
     st.session_state.current_page = "QC"
     st.rerun()
 
-# 3. แผนกคลังสินค้าสำเร็จรูป (FG)
-st.sidebar.markdown(f'<div class="nav-header c-fg">3. แผนกคลังสินค้าสำเร็จรูป (FG)<br><small>{status_fg_text}</small></div>', unsafe_allow_html=True)
-if st.sidebar.button("👉 เข้าสู่หน้าตรวจนับยอดรับสินค้า", key="nav_fg", use_container_width=True):
+if st.sidebar.button("3. แผนกคลังสินค้าสำเร็จรูป (FG)", key="nav_fg", use_container_width=True):
     st.session_state.current_page = "FG"
     st.rerun()
 
-# 4. ฝ่ายบริหารข้อมูลคลัง (ERP)
-st.sidebar.markdown('<div class="nav-header c-erp">4. ฝ่ายบริหารข้อมูลคลัง (ERP)</div>', unsafe_allow_html=True)
-if st.sidebar.button("👉 เข้าสู่รายงานสรุปยอดลง ERP", key="nav_erp", use_container_width=True):
+if st.sidebar.button("4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin)", key="nav_erp", use_container_width=True):
     st.session_state.current_page = "ERP"
     st.rerun()
 
@@ -101,7 +98,7 @@ if st.sidebar.button("👉 เข้าสู่รายงานสรุป�
 # ====================================================
 
 # ----------------------------------------------------
-# 1. หน้าจอส่วนงาน: ฝ่ายผลิต (PD)
+# ขั้นตอนที่ 1: แผนกฝ่ายผลิต (PD)
 # ----------------------------------------------------
 if st.session_state.current_page == "PD":
     st.subheader("⚙️ ส่วนงานฝ่ายผลิต (Production - PD): บันทึกส่งมอบงานสินค้า")
@@ -149,7 +146,7 @@ if st.session_state.current_page == "PD":
                         'JobID': job_id, 'Timestamp': timestamp_now,
                         'PD_Name': pd_name, 'SKU': item['SKU'], 'PD_Qty': item['Qty'],
                         'QC_Status': 'รอ QC ตรวจสอบ (Pending QC)', 'QC_Name': '-',
-                        'FG_Qty': 0, 'FG_Status': 'รอคลังรับเข้า (Pending FG)', 'FG_Name': '-' # 🚀 บังคับให้งานวิ่งไปรอที่หน้า FG ทันทีพร้อมๆ กันเลย!
+                        'FG_Qty': 0, 'FG_Status': 'รอคลังรับเข้า (Pending FG)', 'FG_Name': '-'
                     }
                     df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
                 
@@ -159,7 +156,7 @@ if st.session_state.current_page == "PD":
                 st.rerun()
 
 # ----------------------------------------------------
-# 2. หน้าจอส่วนงาน: ควบคุมคุณภาพ (QC)
+# ขั้นตอนที่ 2: แผนกควบคุมคุณภาพ (QC)
 # ----------------------------------------------------
 elif st.session_state.current_page == "QC":
     st.subheader("🔍 ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
@@ -198,5 +195,14 @@ elif st.session_state.current_page == "QC":
                             save_data(df)
                             st.rerun()
                         else:
-                            st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกัยืนยันข้อมูล")
+                            st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
 
+# ----------------------------------------------------
+# ขั้นตอนที่ 3: แผนกคลังสินค้าสำเร็จรูป (FG)
+# ----------------------------------------------------
+elif st.session_state.current_page == "FG":
+    st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
+    df = st.session_state.current_db
+    fg_pending_indices = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'].index.tolist()
+    
+    if not fg_pending_indices:
