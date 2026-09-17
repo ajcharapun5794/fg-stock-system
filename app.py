@@ -43,21 +43,18 @@ count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจส�
 count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
 
 # ====================================================
-# SIDEBAR PORTAL: ระบบเลือกแผนกงานหลัก (แก้บั๊กกดไม่มาและสีไม่ขึ้นถาวร)
+# SIDEBAR PORTAL: ระบบเลือกแผนกงานหลัก (แถบไฟสี เขียว/แดง เสถียร 100%)
 # ====================================================
 st.sidebar.markdown("## เมนูระบบงานหลัก")
 
-# สรุปสถานะเป็นข้อความเตือนชัดเจนเป็นทางการ
 status_pd = "🟢 1. แผนกฝ่ายผลิต (PD) - ปกติ"
 status_qc = f"🚨 2. แผนกควบคุมคุณภาพ (QC) - [ค้าง {count_qc} รายการ]" if count_qc > 0 else "🟢 2. แผนกควบคุมคุณภาพ (QC) - ไม่มีงานค้าง"
 status_fg = f"🚨 3. แผนกคลังสินค้าสำเร็จรูป (FG) - [ค้าง {count_fg} รายการ]" if count_fg > 0 else "🟢 3. แผนกคลังสินค้าสำเร็จรูป (FG) - ไม่มีงานค้าง"
 status_erp = "📊 4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin)"
 
-# แก้ปัญหาปุ่มกดไม่มา โดยใช้ตัวเลือก Radio แบบทางการ จิ้มเลือกอันไหน หน้าจอฝั่งขวาเปลี่ยนตามทันที 100%
 menu_options = [status_pd, status_qc, status_fg, status_erp]
 choice = st.sidebar.radio("คลิกเลือกแผนกงานของคุณด้านล่างนี้:", menu_options)
 
-# สลับหน้าจอตามที่จิ้มเลือกอย่างแม่นยำ
 if choice == status_pd:
     current_page = "PD"
 elif choice == status_qc:
@@ -132,7 +129,7 @@ if current_page == "PD":
         st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
 # ----------------------------------------------------
-# 2. แผนกควบคุมคุณภาพ (QC)
+# 2. แผนกควบคุมคุณภาพ (QC) - เคลียร์บั๊กคอลลัมน์ปุ่มออกเรียบร้อย
 # ----------------------------------------------------
 elif current_page == "QC":
     st.subheader("🔍 ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
@@ -151,30 +148,29 @@ elif current_page == "QC":
                 st.write(f"เจ้าหน้าที่แผนกผลิตผู้ส่งของ: {row['PD_Name']} | เวลาบันทึกระบบ: {row['Timestamp']}")
                 
                 qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key=f"qc_name_{row['JobID']}")
+                st.write("")
                 
-                cols_qc = st.columns(2)
-                with cols_qc:
-                    if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ (Approve)", key=f"qc_app_{row['JobID']}", use_container_width=True):
-                        if qc_name.strip() != "":
-                            df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
-                            df.at[idx, 'QC_Name'] = qc_name
-                            save_data(df)
-                            st.rerun()
-                        else:
-                            st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
+                # 🛠️ จุดซ่อมแซมใหญ่: ปรับปืนปุ่มเรียงแถวลงมา คลีน ๆ เสถียร 100% ล้าง Error แถบส้มออกถาวร
+                if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ (Approve)", key=f"qc_app_{row['JobID']}", use_container_width=True):
+                    if qc_name.strip() != "":
+                        df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
+                        df.at[idx, 'QC_Name'] = qc_name
+                        save_data(df)
+                        st.rerun()
+                    else:
+                        st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
                         
-                with cols_qc:
-                    if st.button("❌ ปฏิเสธเกณฑ์/ตีกลับงานเสีย (Reject/NG)", key=f"qc_rej_{row['JobID']}", use_container_width=True):
-                        if qc_name.strip() != "":
-                            df.at[idx, 'QC_Status'] = 'ตีกลับ/สเปกไม่ผ่าน (NG)'
-                            df.at[idx, 'QC_Name'] = qc_name
-                            save_data(df)
-                            st.rerun()
-                        else:
-                            st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
+                if st.button("❌ ปฏิเสธเกณฑ์/ตีกลับงานเสีย (Reject/NG)", key=f"qc_rej_{row['JobID']}", use_container_width=True):
+                    if qc_name.strip() != "":
+                        df.at[idx, 'QC_Status'] = 'ตีกลับ/สเปกไม่ผ่าน (NG)'
+                        df.at[idx, 'QC_Name'] = qc_name
+                        save_data(df)
+                        st.rerun()
+                    else:
+                        st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
 
 # ----------------------------------------------------
-# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - ดึงข้อมูลมาแสดงผลแน่นอน 100%
+# 3. แผนกคลังสินค้าสำเร็จรูป (FG)
 # ----------------------------------------------------
 elif current_page == "FG":
     st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
@@ -202,3 +198,7 @@ elif current_page == "FG":
                         df.at[idx, 'FG_Name'] = fg_name
                         df.at[idx, 'FG_Status'] = 'รับเข้าคลังสำเร็จ (Completed)'
                         save_data(df)
+                        st.success("บันทึกข้อมูลของครบถ้วนเรียบร้อย!")
+                        st.rerun()
+                    else:
+                        st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
