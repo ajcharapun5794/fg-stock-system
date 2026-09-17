@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit st
 import pandas as pd
 from datetime import datetime
 
@@ -93,7 +93,7 @@ if nav_erp: st.session_state.current_page = "ERP"; st.rerun()
 # ====================================================
 
 # ----------------------------------------------------
-# 1. แผนกฝ่ายผลิต (PD) - บันทึก ชื่อ, รอบเวลา, รหัสสินค้า, จำนวน (สะสมหลายโค้ดได้)
+# 1. แผนกฝ่ายผลิต (PD)
 # ----------------------------------------------------
 if st.session_state.current_page == "PD":
     st.subheader("⚙️ ส่วนงานฝ่ายผลิต (Production - PD): บันทึกส่งมอบงานสินค้า")
@@ -158,7 +158,7 @@ if st.session_state.current_page == "PD":
         st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
 # ----------------------------------------------------
-# 2. แผนกควบคุมคุณภาพ (QC) - เลือกหลายโค้ด ผ่านยกแผงในปุ่มเดียว
+# 2. แผนกควบคุมคุณภาพ (QC) - 🔥 แก้ไขตรรกะดีดีให้ถีบงานไปหา FG สำเร็จ + กู้คืนปุ่มลบกลับมา 100%
 # ----------------------------------------------------
 elif st.session_state.current_page == "QC":
     st.subheader("🔍 ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
@@ -176,7 +176,7 @@ elif st.session_state.current_page == "QC":
             display_text = f"คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | จำนวน: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']})"
             options_map_qc[display_text] = r['JobID']
             
-        selected_qc_jobs = st.multiselect("คลิกเลือกคิวงานสินค้าที่ตรวจสอบผ่านเกณฑ์พร้อมกันหลายรายการ:", list(options_map_qc.keys()))
+        selected_qc_jobs = st.multiselect("คลิкเลือกคิวงานสินค้าที่ตรวจสอบผ่านเกณฑ์พร้อมกันหลายรายการ:", list(options_map_qc.keys()))
         
         st.write("---")
         col_qc_act1, col_qc_act2 = st.columns(2)
@@ -187,10 +187,7 @@ elif st.session_state.current_page == "QC":
                 elif not selected_qc_jobs:
                     st.error("กรุณาคลิกเลือกรายการคิวงานสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
                 else:
-                    for option in selected_qc_jobs:
-                        job_id_extracted = options_map_qc[option] 
-                        
-#----------------------------------------------------
+                    # ----------------------------------------------------
 # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - เลือกหลายโค้ด อนุมัติรับงานยกแผงปุ่มเดียวส่งต่อด่าน 4 ได้จริง 100%
 # ----------------------------------------------------
 elif st.session_state.current_page == "FG":
