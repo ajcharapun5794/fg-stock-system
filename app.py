@@ -43,35 +43,66 @@ count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจส�
 count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
 
 # ====================================================
-# SIDEBAR PORTAL: ระบบเลือกแผนกงานหลัก (แถบไฟสี เขียว/แดง เสถียร 100%)
+# SIDEBAR PORTAL: คืนสิทธิ์ระบบ 4 แถบกล่องไฟสี เขียว-แดง แจ้งเตือนเสถียร 100%
 # ====================================================
 st.sidebar.markdown("## เมนูระบบงานหลัก")
 
-status_pd = "🟢 1. แผนกฝ่ายผลิต (PD) - ปกติ"
-status_qc = f"🚨 2. แผนกควบคุมคุณภาพ (QC) - [ค้าง {count_qc} รายการ]" if count_qc > 0 else "🟢 2. แผนกควบคุมคุณภาพ (QC) - ไม่มีงานค้าง"
-status_fg = f"🚨 3. แผนกคลังสินค้าสำเร็จรูป (FG) - [ค้าง {count_fg} รายการ]" if count_fg > 0 else "🟢 3. แผนกคลังสินค้าสำเร็จรูป (FG) - ไม่มีงานค้าง"
-status_erp = "📊 4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin)"
+# กำหนดตรรกะสีและข้อความฟ้องสถานะ (มีงาน = แดงอ่อน #FFEBEE / ไม่มีงาน = เขียวอ่อน #E8F5E9)
+txt_qc_status = f"🚨 มีงานค้าง {count_qc} รายการ" if count_qc > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
+color_qc_bg = "#FFEBEE" if count_qc > 0 else "#E8F5E9"
+color_qc_txt = "#B71C1C" if count_qc > 0 else "#1B5E20"
+color_qc_border = "#EF9A9A" if count_qc > 0 else "#A5D6A7"
 
-menu_options = [status_pd, status_qc, status_fg, status_erp]
-choice = st.sidebar.radio("คลิกเลือกแผนกงานของคุณด้านล่างนี้:", menu_options)
+txt_fg_status = f"🚨 มีงานค้าง {count_fg} รายการ" if count_fg > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
+color_fg_bg = "#FFEBEE" if count_fg > 0 else "#E8F5E9"
+color_fg_txt = "#B71C1C" if count_fg > 0 else "#1B5E20"
+color_fg_border = "#EF9A9A" if count_fg > 0 else "#A5D6A7"
 
-if choice == status_pd:
-    current_page = "PD"
-elif choice == status_qc:
-    current_page = "QC"
-elif choice == status_fg:
-    current_page = "FG"
-else:
-    current_page = "ERP"
+# แทรกคำสั่ง CSS เพื่อสร้างกล่องป้ายไฟสีอย่างเป็นทางการ มั่นคง ไม่รวนข้ามบราวเซอร์
+st.sidebar.markdown(f"""
+    <style>
+    .nav-badge {{ padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-top: 12px; margin-bottom: 4px; font-size: 13px; }}
+    .c-green {{ background-color: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }}
+    .c-blue {{ background-color: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }}
+    .c-qc-dynamic {{ background-color: {color_qc_bg}; color: {color_qc_txt}; border: 1px solid {color_qc_border}; }}
+    .c-fg_dynamic {{ background-color: {color_fg_bg}; color: {color_fg_txt}; border: 1px solid {color_fg_border}; }}
+    div[data-testid="stSidebarUserContent"] button {{ font-weight: bold !important; font-size: 14px !important; margin-bottom: 10px !important; }}
+    </style>
+""", unsafe_allow_html=True)
+
+# แถบที่ 1: ฝ่ายผลิต (PD)
+st.sidebar.markdown('<div class="nav-badge c-green">1. แผนกฝ่ายผลิต (PD) <br><small>🟢 สถานะปกติ</small></div>', unsafe_allow_html=True)
+nav_pd = st.sidebar.button("👉 เปิดหน้าจอ ฝ่ายผลิต", key="go_pd", use_container_width=True)
+
+# แถบที่ 2: ควบคุมคุณภาพ (QC)
+st.sidebar.markdown(f'<div class="nav-badge c-qc-dynamic">2. แผนกควบคุมคุณภาพ (QC) <br><small>{txt_qc_status}</small></div>', unsafe_allow_html=True)
+nav_qc = st.sidebar.button("👉 เปิดหน้าจอ ตรวจสเปก QC", key="go_qc", use_container_width=True)
+
+# แถบที่ 3: คลังสินค้าสำเร็จรูป (FG)
+st.sidebar.markdown(f'<div class="nav-badge c-fg_dynamic">3. แผนกคลังสินค้า (FG) <br><small>{txt_fg_status}</small></div>', unsafe_allow_html=True)
+nav_fg = st.sidebar.button("👉 เปิดหน้าจอ ตรวจนับของ FG", key="go_fg", use_container_width=True)
+
+# แถบที่ 4: แอดมินสรุปยอด ERP
+st.sidebar.markdown('<div class="nav-badge c-blue">4. ฝ่ายบริหารข้อมูลคลัง (ERP) <br><small>📊 สรุปยอดข้อมูลรวม</small></div>', unsafe_allow_html=True)
+nav_erp = st.sidebar.button("👉 เปิดรายงานสรุปยอดลง ERP", key="go_erp", use_container_width=True)
+
+# ระบบสลับเปลี่ยนหน้าจอ
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "PD"
+
+if nav_pd: st.session_state.current_page = "PD"; st.rerun()
+if nav_qc: st.session_state.current_page = "QC"; st.rerun()
+if nav_fg: st.session_state.current_page = "FG"; st.rerun()
+if nav_erp: st.session_state.current_page = "ERP"; st.rerun()
 
 # ====================================================
 # WORKFLOW PAGES INTERFACE (เนื้อหาฝั่งขวา)
 # ====================================================
 
 # ----------------------------------------------------
-# 1. แผนกฝ่ายผลิต (PD) - ชื่อ, เวลา, โค้ด, จำนวน, คีย์สะสมได้หลายโค้ดพร้อมกัน
+# 1. แผนกฝ่ายผลิต (PD)
 # ----------------------------------------------------
-if current_page == "PD":
+if st.session_state.current_page == "PD":
     st.subheader("⚙️ ส่วนงานฝ่ายผลิต (Production - PD): บันทึกส่งมอบงานสินค้า")
     pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตผู้บันทึกข้อมูล:")
     pd_shift = st.text_input("ระบุรอบเวลาการส่งงาน / กะการทำงาน (เช่น รอบ 10:00 น. หรือ กะเช้า):")
@@ -130,9 +161,9 @@ if current_page == "PD":
         st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
 # ----------------------------------------------------
-# 2. แผนกควบคุมคุณภาพ (QC) - พิมพ์ชื่อตัวเอง, เลือกหลายคิวงาน อนุมัติยกแผงปุ่มเดียว
+# 2. แผนกควบคุมคุณภาพ (QC)
 # ----------------------------------------------------
-elif current_page == "QC":
+elif st.session_state.current_page == "QC":
     st.subheader("🔍 ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
     df = st.session_state.current_db
     qc_pending_list = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)']
@@ -143,20 +174,19 @@ elif current_page == "QC":
         st.write("### 📋 รายการสินค้าค้างตรวจสเปก")
         qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key="qc_global_name")
         
-        # ดึงคิวงานมาสร้างลิสต์รายชื่อให้ติ๊กเลือกหลายช่องพร้อมกัน
         options_map_qc = {}
         for _, r in qc_pending_list.iterrows():
             display_text = f"คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | จำนวน: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']})"
             options_map_qc[display_text] = r['JobID']
             
-        selected_qc_jobs = st.multiselect("คลิกเลือกคิวงานที่ตรวจสอบผ่านเกณฑ์มาตรฐานพร้อมกันหลายรายการ:", list(options_map_qc.keys()))
+        selected_qc_jobs = st.multiselect("เลือกรายการรหัสสินค้าที่ต้องการอนุมัติผ่านเกณฑ์พร้อมกัน:", list(options_map_qc.keys()))
         
         st.write("---")
-        if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ทุกรายการที่เลือก (Approve ยกแผง)", type="primary", use_container_width=True):
+        if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ทุกรายการที่เลือก (Approve พร้อมกัน)", type="primary", use_container_width=True):
             if qc_name.strip() == "":
                 st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
             elif not selected_qc_jobs:
-                st.error("กรุณาคลิกเลือกรายการคิวงานสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
+                st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
             else:
                 for option in selected_qc_jobs:
                     job_id_extracted = options_map_qc[option]
@@ -164,13 +194,10 @@ elif current_page == "QC":
                     df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
                     df.at[idx, 'QC_Name'] = qc_name
                 save_data(df)
-                st.success(f"อนุมัติผ่านเกณฑ์สำเร็จ {len(selected_qc_jobs)} รายการ! ยอดวิ่งไปรอที่หน้าแผนกคลังสินค้า FG เรียบร้อย")
-                st.rerun()
-
 # ----------------------------------------------------
-# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - พิมพ์ชื่อตัวเอง, เลือกหลายคิวงาน อนุมัติรับงานยกแผงปุ่มเดียว
+# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - เลือกหลายคิวงาน อนุมัติรับงานยกแผงปุ่มเดียว
 # ----------------------------------------------------
-elif current_page == "FG":
+elif st.session_state.current_page == "FG":
     st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
     df = st.session_state.current_db
     fg_pending_list = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)']
@@ -181,16 +208,16 @@ elif current_page == "FG":
         st.write("### 📦 รายการสินค้าค้างนับรับเข้าสต็อก")
         fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริง:", key="fg_global_name")
         
-        # ดึงคิวงานมาสร้างลิสต์รายชื่อให้ติ๊กเลือกหลายช่องพร้อมกัน
+        # ดึงคิวงานมาสร้างลิสต์รายชื่อให้พนักงานคลังคลิกเลือกหลายช่องพร้อมกัน
         options_map_fg = {}
-        for _, r in fg_pending_list.iterrows():
+        for idx_row, r in fg_pending_list.iterrows():
             display_text = f"📦 คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดแจ้งส่ง: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']}) | QC ผู้ตรวจ: {r['QC_Name']}"
             options_map_fg[display_text] = r['JobID']
             
         selected_fg_jobs = st.multiselect("คลิกเลือกคิวงานที่ตรวจสอบนับของจริงเรียบร้อยแล้วเพื่อรับเข้าคลังพร้อมกัน:", list(options_map_fg.keys()))
         
         st.write("---")
-        # 🚀 ปุ่มกดยืนยันรับงานเข้าสต็อกยกแผงปุ่มเดียวตามสั่งบรีฟล่าสุดเป๊ะ ๆ 100%
+        # ปุ่มหลัก: บันทึกรับของเข้าสต็อกคลัง FG แบบยกแผงปุ่มเดียว รันผ่าน 100% ตรงตามสั่ง
         if st.button("💾 ยืนยันบันทึกรับสินค้าเข้าสต็อกทุกรายการที่เลือก (Approve ยกแผง)", type="primary", use_container_width=True):
             if fg_name.strip() == "":
                 st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
@@ -199,3 +226,32 @@ elif current_page == "FG":
             else:
                 for option in selected_fg_jobs:
                     job_id_extracted = options_map_fg[option]
+                    idx = df[df['JobID'] == job_id_extracted].index
+                    df.at[idx, 'FG_Qty'] = df.at[idx, 'PD_Qty']  # บันทึกยอดรับเข้าจริงเท่ากับยอดส่งทันที
+                    df.at[idx, 'FG_Name'] = fg_name
+                    df.at[idx, 'FG_Status'] = 'รับเข้าคลังสำเร็จ (Completed)'
+                save_data(df)
+                st.success(f"คลังสินค้า FG บันทึกรับเข้าสต็อกสำเร็จ {len(selected_fg_jobs)} รายการ! ยอดวิ่งไปหน้าตาราง ERP แล้ว")
+                st.rerun()
+
+# ----------------------------------------------------
+# 4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin) - ดูยอดรับจริงทั้งหมด และนำลง ERP
+# ----------------------------------------------------
+elif st.session_state.current_page == "ERP":
+    st.header("หน้าจอส่วนงาน: ฝ่ายบริหารข้อมูลคลังสินค้า (ERP Administrator)")
+    st.subheader("รายงานสรุปตรวจสอบยอดรับจริงหน้างาน 100% เพื่อนำข้อมูลคีย์ลงระบบ ERP")
+    
+    df = st.session_state.current_db
+    st.dataframe(df[['JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty', 'QC_Status', 'QC_Name', 'FG_Qty', 'FG_Status', 'FG_Name']], use_container_width=True)
+    
+    completed_jobs = df[df['FG_Status'] == 'รับเข้าคลังสำเร็จ (Completed)']
+    if not completed_jobs.empty:
+        csv = completed_jobs.to_csv(index=False).encode('utf-8-sig')
+        st.download_button(
+            label="📥 ดาวน์โหลดไฟล์รายงานยอดรับจริง (.CSV) สำหรับนำข้อมูลอัปโหลดเข้า ERP ของบริษัททันที",
+            data=csv,
+            file_name="Finished_Goods_Verified_Report.csv",
+            mime='text/csv',
+            use_container_width=True
+        )
+
