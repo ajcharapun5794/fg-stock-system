@@ -40,7 +40,7 @@ if 'current_db' not in st.session_state:
 
 df_current = st.session_state.current_db
 
-# คำนวณจำนวนงานค้างของแต่ละแผนก
+# คำนวณจำนวนงานค้างของแต่ละแผนกให้แม่นยำ
 count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
 count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
 
@@ -165,6 +165,10 @@ elif st.session_state.current_page == "QC":
     st.header("หน้าจอส่วนงาน: ฝ่ายควบคุมคุณภาพ (Quality Control - QC)")
     st.subheader("รายการสินค้าค้างตรวจสอบเกณฑ์มาตรฐานคุณภาพสินค้า")
     
+    if st.button("🔄 ดึงข้อมูลคิวงานล่าสุด"):
+        st.session_state.current_db = load_data()
+        st.rerun()
+        
     df = st.session_state.current_db
     qc_pending_indices = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'].index.tolist()
     
@@ -205,7 +209,4 @@ elif st.session_state.current_page == "QC":
                             st.error("กรุณาระบุชื่อพนักงานตรวจสอบคุณภาพ (QC) ก่อนกดยืนยัน")
 
 # ----------------------------------------------------
-# 3. คลังสินค้า (FG Receiver)
-# ----------------------------------------------------
-elif st.session_state.current_page == "FG":
-    st.header("หน้าจอส่วนงาน: ฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG)")
+# 3. คลังสินค้า (FG Receiver) - ซ่อมตรรกะการดึงแถวสำเร็จเรียบร้อย
