@@ -217,7 +217,7 @@ elif st.session_state.current_page == "FG":
         
         st.write("---")
         # 🚀 ซ่อมแซมใหญ่สำเร็จ: เปลี่ยนคำสั่งจาก .at เป็น .loc เพื่อให้ระบบคัดลอกค่าจำนวนเซฟทับยกแผงได้แบบไม่ระเบิด
-        if st.button("💾 ยืนยันบันทึกรับสินค้าเข้าสต็อกทุกรายการที่เลือก (Approve ยกแผง)", type="primary", use_container_width=True):
+        if st.button("💾 ยืนยันบันทึกรับสินค้าเข้าสต็อกทุกรายการที่เลือก (Approve )", type="primary", use_container_width=True):
             if fg_name.strip() == "":
                 st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
             elif not selected_fg_jobs:
