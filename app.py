@@ -47,46 +47,56 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = "PD"
 
 # ====================================================
-# SIDEBAR NAVIGATION PORTAL
+# SIDEBAR PORTAL: 4 กล่องเมนูเปลี่ยนสีอัตโนมัติ (ยุบปุ่มซ้ำซ้อนออกแล้ว)
 # ====================================================
-st.sidebar.markdown("<h2>เมนูระบบงานหลัก</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("## เมนูระบบงานหลัก")
 
-status_qc_color = "🔴 มีงานค้าง" if count_qc > 0 else "🟢 เคลียร์หมด"
-status_fg_color = "🔴 มีงานค้าง" if count_fg > 0 else "🟢 เคลียร์หมด"
+# ตั้งค่าโค้ดสีตามจำนวนงานค้าง (มีงาน = แดงอ่อน #FFEBEE / ไม่มีงาน = เขียวอ่อน #E8F5E9)
+color_pd_bg = "#E8F5E9"
+color_pd_txt = "#1B5E20"
 
-# 1. แทบฝ่ายผลิต (PD)
-st.sidebar.info("🟢 1. แผนกฝ่ายผลิต (PD)")
-if st.sidebar.button("👉 เปิดหน้าบันทึกส่งมอบงาน", key="btn_nav_pd", use_container_width=True):
+color_qc_bg = "#FFEBEE" if count_qc > 0 else "#E8F5E9"
+color_qc_txt = "#B71C1C" if count_qc > 0 else "#1B5E20"
+color_qc_border = "#EF9A9A" if count_qc > 0 else "#A5D6A7"
+
+color_fg_bg = "#FFEBEE" if count_fg > 0 else "#E8F5E9"
+color_fg_txt = "#B71C1C" if count_fg > 0 else "#1B5E20"
+color_fg_border = "#EF9A9A" if count_fg > 0 else "#A5D6A7"
+
+color_erp_bg = "#E3F2FD"
+color_erp_txt = "#0D47A1"
+
+# บังคับสไตล์สีปุ่มกดเมนูด้านซ้ายให้กลายเป็นกล่องสีสลับตามสถานะจริง 100%
+st.markdown(f"""
+    <style>
+    div.stButton > button {{ font-weight: bold !important; font-size: 16px !important; padding: 16px !important; border-radius: 8px !important; margin-bottom: -5px !important; text-align: center !important; }}
+    /* บังคับสีรายปุ่ม */
+    .st-emotion-cache-164746f > div:nth-child(2) button {{ background-color: {color_pd_bg} !important; color: {color_pd_txt} !important; border: 1px solid #A5D6A7 !important; }}
+    .st-emotion-cache-164746f > div:nth-child(3) button {{ background-color: {color_qc_bg} !important; color: {color_qc_txt} !important; border: 1px solid {color_qc_border} !important; }}
+    .st-emotion-cache-164746f > div:nth-child(4) button {{ background-color: {color_fg_bg} !important; color: {color_fg_txt} !important; border: 1px solid {color_fg_border} !important; }}
+    .st-emotion-cache-164746f > div:nth-child(5) button {{ background-color: {color_erp_bg} !important; color: {color_erp_txt} !important; border: 1px solid #90CAF9 !important; }}
+    </style>
+""", unsafe_allow_html=True)
+
+# 1. กล่องปุ่มกด แผนกฝ่ายผลิต
+if st.sidebar.button("1. แผนกฝ่ายผลิต (PD)", key="nav_pd_main", use_container_width=True):
     st.session_state.current_page = "PD"
     st.rerun()
 
-st.sidebar.write("")
-
-# 2. แทบฝ่ายควบคุมคุณภาพ (QC)
-if count_qc > 0:
-    st.sidebar.error(f"🔴 2. แผนกควบคุมคุณภาพ (QC) \n(ค้าง {count_qc} รายการ)")
-else:
-    st.sidebar.info("🟢 2. แผนกควบคุมคุณภาพ (QC) \n(ไม่มีงานค้าง)")
-if st.sidebar.button("👉 เปิดหน้าตรวจสอบสเปกสินค้า", key="btn_nav_qc", use_container_width=True):
+# 2. กล่องปุ่มกด แผนกควบคุมคุณภาพ
+label_qc_btn = f"2. แผนกควบคุมคุณภาพ (QC) \n (ค้าง {count_qc} รายการ)" if count_qc > 0 else "2. แผนกควบคุมคุณภาพ (QC) \n (ไม่มีงานค้าง)"
+if st.sidebar.button(label_qc_btn, key="nav_qc_main", use_container_width=True):
     st.session_state.current_page = "QC"
     st.rerun()
 
-st.sidebar.write("")
-
-# 3. แทบฝ่ายคลังสินค้า (FG)
-if count_fg > 0:
-    st.sidebar.error(f"🔴 3. แผนกคลังสินค้าสำเร็จรูป (FG) \n(ค้าง {count_fg} รายการ)")
-else:
-    st.sidebar.info("🟢 3. แผนกคลังสินค้าสำเร็จรูป (FG) \n(ไม่มีงานค้าง)")
-if st.sidebar.button("👉 เปิดหน้าตรวจนับยอดรับสินค้า", key="btn_nav_fg", use_container_width=True):
+# 3. กล่องปุ่มกด แผนกคลังสินค้า
+label_fg_btn = f"3. แผนกคลังสินค้าสำเร็จรูป (FG) \n (ค้าง {count_fg} รายการ)" if count_fg > 0 else "3. แผนกคลังสินค้าสำเร็จรูป (FG) \n (ไม่มีงานค้าง)"
+if st.sidebar.button(label_fg_btn, key="nav_fg_main", use_container_width=True):
     st.session_state.current_page = "FG"
     st.rerun()
 
-st.sidebar.write("")
-
-# 4. แทบฝ่ายแอดมิน ERP
-st.sidebar.success("📊 4. ฝ่ายบริหารข้อมูลคลัง (ERP)")
-if st.sidebar.button("👉 เปิดรายงานสรุปยอดลง ERP", key="btn_nav_erp", use_container_width=True):
+# 4. กล่องปุ่มกด แผนกแอดมิน ERP
+if st.sidebar.button("4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin)", key="nav_erp_main", use_container_width=True):
     st.session_state.current_page = "ERP"
     st.rerun()
 
@@ -178,7 +188,6 @@ elif st.session_state.current_page == "QC":
                 
                 qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key=f"qc_name_{row['JobID']}")
                 
-                # 🔥 แก้จุดแบ่งคอลัมน์ปุ่มฝั่ง QC ให้เสถียร
                 cols_qc = st.columns(2)
                 with cols_qc[0]:
                     if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ (Approve)", key=f"qc_app_{row['JobID']}", use_container_width=True):
@@ -195,25 +204,4 @@ elif st.session_state.current_page == "QC":
                     if st.button("❌ ปฏิเสธเกณฑ์/ตีกลับงานเสีย (Reject/NG)", key=f"qc_rej_{row['JobID']}", use_container_width=True):
                         if qc_name.strip() != "":
                             df.at[idx, 'QC_Status'] = 'ตีกลับ/สเปกไม่ผ่าน (NG)'
-                            df.at[idx, 'QC_Name'] = qc_name
-                            df.at[idx, 'FG_Status'] = 'ยกเลิก (QC ไม่ผ่าน)'
-                            save_data(df)
-                            st.rerun()
-                        else:
-                            st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
 
-# ----------------------------------------------------
-# 3. หน้าจอส่วนงาน: คลังสินค้าสำเร็จรูป (FG) - แก้ไขช่องรับงานเสร็จสมบูรณ์
-# ----------------------------------------------------
-elif st.session_state.current_page == "FG":
-    st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
-    df = st.session_state.current_db
-    fg_pending_indices = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'].index.tolist()
-    
-    if not fg_pending_indices:
-        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังสินค้าสำเร็จรูปในระบบขณะนี้")
-    else:
-        for idx in fg_pending_indices:
-            row = df.loc[idx]
-            title_text = f"📦 คิวงาน: {row['JobID']} | รหัสสินค้า: {row['SKU']} | ยอดในใบส่ง: {row['PD_Qty']:,} ชิ้น"
-            with st.expander(title_text, expanded=True): # บังคับให้กางกล่องเปิดออกเห็นข้อมูลทันที
