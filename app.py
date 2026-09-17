@@ -11,7 +11,7 @@ SHEET_NAME = "Sheet1"
 GSHEET_URL = f"https://google.com{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SHEET_NAME}"
 
 # ====================================================
-# DATABASE FUNCTIONS (ปรับปรุงให้รองรับข้อมูลจำลองนิ่งเสถียร)
+# DATABASE FUNCTIONS
 # ====================================================
 if 'mock_db' not in st.session_state:
     st.session_state.mock_db = pd.DataFrame(columns=[
@@ -19,7 +19,6 @@ if 'mock_db' not in st.session_state:
     ])
 
 def load_data():
-    # ใช้ฐานข้อมูลหน่วยความจำร่วมกันเป็นหลัก เพื่อไม่ให้โดน Google Sheet เปล่าๆ ดึงข้อมูลทับซ้อนระหว่างทดสอบ
     return st.session_state.mock_db
 
 def save_data(df):
@@ -40,7 +39,7 @@ if 'current_db' not in st.session_state:
 
 df_current = st.session_state.current_db
 
-# คำนวณจำนวนงานค้างของแต่ละแผนกเพื่ออัปเดตสีแทบเมนู
+# คำนวณจำนวนงานค้างของแต่ละแผนก
 count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
 count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
 
@@ -50,19 +49,17 @@ if 'current_page' not in st.session_state:
 # ====================================================
 # NEW SIDEBAR PORTAL: การันตีเปลี่ยนสีปุ่มเมนู 4 แทบด้านซ้าย
 # ====================================================
-st.sidebar.markdown("## เมนูระบบงานหลัก")
+st.sidebar.markdown("<h2>เมนูระบบงานหลัก</h2>", unsafe_allow_html=True)
 
-# ตรรกะเช็คว่าสีแทบด้านข้างต้องเป็นสีอะไร (ถ้ามีงานค้าง = แดงเด่น / ถ้าไม่มีงานค้าง = เขียวเคลียร์)
 status_qc_color = "🔴 มีงานค้าง" if count_qc > 0 else "🟢 เคลียร์หมด"
 status_fg_color = "🔴 มีงานค้าง" if count_fg > 0 else "🟢 เคลียร์หมด"
 
-# ใช้เทคนิคเปลี่ยนปุ่มกดสไตล์ทางการให้เปลี่ยนสีพื้นหลังตามสถานะงานค้างจริง 100% ไม่หลุดตำแหน่ง
 st.sidebar.markdown(
     f"""
     <style>
     .nav-box {{ padding: 12px; border-radius: 8px; margin-bottom: 10px; font-weight: bold; text-align: center; }}
     .status-green {{ background-color: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }}
-    .status-red {{ background-color: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; animation: blinker 2s linear infinite; }}
+    .status-red {{ background-color: #FFEBEE; color: #B71C1C; border: 1px solid #EF9A9A; }}
     .status-blue {{ background-color: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }}
     </style>
     """, unsafe_allow_html=True
@@ -110,13 +107,13 @@ if st.session_state.current_page == "PD":
         st.session_state.temp_items = []
 
     with st.container(border=True):
-        col_sku, col_qty, col_btn = st.columns([2, 2, 1])
+        col_sku, col_qty, col_btn = st.columns(3)
         with col_sku:
             input_sku = st.text_input("ระบุรหัสสินค้า หรือใช้ปืนสแกนบาร์โค้ดยิง (SKU):", key="input_sku")
         with col_qty:
             input_qty = st.number_input("จำนวนสินค้าที่นำส่งมอบจริง:", min_value=1, step=1, key="input_qty")
         with col_btn:
-            st.write("") # ผลักระยะปุ่มให้ตรงช่อง
+            st.write("") 
             st.write("") 
             if st.button("➕ เพิ่มเข้าตาราง", use_container_width=True):
                 if input_sku.strip() != "":
@@ -127,7 +124,6 @@ if st.session_state.current_page == "PD":
 
     if st.session_state.temp_items:
         df_temp = pd.DataFrame(st.session_state.temp_items)
-        # แสดงผลตารางแบบตัวหนาให้อ่านง่าย
         df_display = df_temp.copy()
         df_display['SKU'] = df_display['SKU'].apply(lambda x: f"<b>{x}</b>")
         df_display['Qty'] = df_display['Qty'].apply(lambda x: f"<b>{x:,} ชิ้น</b>")
@@ -178,9 +174,8 @@ elif st.session_state.current_page == "QC":
             row = df.loc[idx]
             title_text = f"📋 คิวงาน: {row['JobID']} | รหัสสินค้า: {row['SKU']} | จำนวน: {row['PD_Qty']:,} ชิ้น"
             with st.expander(title_text):
-                # แสดงผลรหัสสินค้าและจำนวนตัวหนาขนาดใหญ่ชัดเจน
-                st.markdown(f"### รหัสสินค้า (SKU): <span style='color:#0D47A1'><b>{row['SKU']}</b></span>", unsafe_allow_html=True)
-                st.markdown(f"### ปริมาณแจ้งส่งมอบจากแผนกผลิต: <span style='color:#1B5E20'><b>{row['PD_Qty']:,} ชิ้น</b></span>", unsafe_allow_html=True)
+                st.write(f"### รหัสสินค้า (SKU): **{row['SKU']}**")
+                st.write(f"### ปริมาณแจ้งส่งมอบจากแผนกผลิต: **{row['PD_Qty']:,} ชิ้น**")
                 st.write(f"เจ้าหน้าที่แผนกผลิตผู้ส่งของ: {row['PD_Name']} | เวลาบันทึกระบบ: {row['Timestamp']}")
                 
                 qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key=f"qc_name_{row['JobID']}")
@@ -200,3 +195,15 @@ elif st.session_state.current_page == "QC":
                 with col2:
                     if st.button("❌ ปฏิเสธเกณฑ์/ตีกลับงานเสีย (Reject/NG)", key=f"qc_rej_{row['JobID']}", use_container_width=True):
                         if qc_name.strip() != "":
+                            df.at[idx, 'QC_Status'] = 'ตีกลับ/สเปกไม่ผ่าน (NG)'
+                            df.at[idx, 'QC_Name'] = qc_name
+                            df.at[idx, 'FG_Status'] = 'ยกเลิก (QC ไม่ผ่าน)'
+                            save_data(df)
+                            st.rerun()
+                        else:
+                            st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
+
+# ----------------------------------------------------
+# 3. หน้าจอส่วนงาน: คลังสินค้าสำเร็จรูป (FG)
+# ----------------------------------------------------
+elif st.session_state.current_page == "FG":
