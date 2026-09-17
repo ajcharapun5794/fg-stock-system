@@ -52,25 +52,21 @@ if 'current_page' not in st.session_state:
 # ====================================================
 st.sidebar.markdown("### เมนูระบบงานหลัก")
 
-# ตั้งค่าสีพื้นฐานสำหรับปุ่ม (ถ้าไม่มีงานค้าง = สีเขียวอ่อน, ถ้ามีงานค้าง = สีแดงอ่อน)
-bg_pd = "#E8F5E9"  # ฝ่ายผลิตเริ่มงานเสมอ เป็นสีเขียวอ่อนซอฟต์ ๆ
-bg_qc = "#FFEBEE" if count_qc > 0 else "#E8F5E9"  # มีงานค้างคิว QC = แดงอ่อน / เคลียร์หมด = เขียวอ่อน
-bg_fg = "#FFEBEE" if count_fg > 0 else "#E8F5E9"  # มีงานค้างคิว FG = แดงอ่อน / เคลียร์หมด = เขียวอ่อน
-bg_erp = "#E3F2FD" # ฝ่าย ERP สรุปยอด (สีฟ้าทางการ)
+bg_pd = "#E8F5E9"  
+bg_qc = "#FFEBEE" if count_qc > 0 else "#E8F5E9"  
+bg_fg = "#FFEBEE" if count_fg > 0 else "#E8F5E9"  
+bg_erp = "#E3F2FD" 
 
-# แทรก CSS เพื่อเปลี่ยนสีปุ่มเมนูฝั่งซ้ายแบบไดนามิกตามสั่ง
 st.markdown(f"""
     <style>
     div.stButton > button:first-child {{ font-weight: bold; border-radius: 6px; }}
-    /* บังคับสีปุ่มตามไอดีหรือลำดับปุ่มในแถบเมนูข้าง */
     .st-emotion-cache-164746f > div:nth-child(2) button {{ background-color: {bg_pd} !important; color: #1B5E20 !important; }}
     .st-emotion-cache-164746f > div:nth-child(3) button {{ background-color: {bg_qc} !important; color: {"#B71C1C" if count_qc > 0 else "#1B5E20"} !important; border: 1px solid {"#EF9A9A" if count_qc > 0 else "#A5D6A7"} !important; }}
-    .st-emotion-cache-164746f > div:nth-child(4) button {{ background-color: {bg_fg} !important; color: {"#B71C1C" if count_fg > 0 else "#1B5E20"} !important; border: 1px solid {"#EF9A9A" if count_fg > 0 else "#A5D6A7"} !important; }}
+    .st-emotion-cache-164746f > div:nth-child(4) button {{ background-color: {bg_fg} !important; color: {"#B71C1C" if count_qc > 0 else "#1B5E20"} !important; border: 1px solid {"#EF9A9A" if count_qc > 0 else "#A5D6A7"} !important; }}
     .st-emotion-cache-164746f > div:nth-child(5) button {{ background-color: {bg_erp} !important; color: #0D47A1 !important; }}
     </style>
-""", unsafe_allow_width=True)
+""", unsafe_allow_html=True)
 
-# สร้างปุ่มเมนูซ้ายมือเรียงลงมา
 if st.sidebar.button("1. ฝ่ายผลิต (PD) - ส่งมอบสินค้า", use_container_width=True):
     st.session_state.current_page = "PD"
     st.rerun()
@@ -90,7 +86,7 @@ if st.sidebar.button("4. ฝ่ายบริหารข้อมูลคล�
     st.rerun()
 
 # ====================================================
-# WORKFLOW PAGES INTERFACE (เนื้อหาด้านขวา ปรับตัวหนาชัดเจน)
+# WORKFLOW PAGES INTERFACE 
 # ====================================================
 
 # ----------------------------------------------------
@@ -101,7 +97,6 @@ if st.session_state.current_page == "PD":
     st.subheader("บันทึกการนำส่งมอบสินค้าประจำวัน")
     
     pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตผู้บันทึกข้อมูล:", key="pd_operator_name")
-    
     st.markdown("#### ตารางสรุปรายการสินค้าที่ต้องการส่งมอบในรอบนี้")
     
     if 'temp_items' not in st.session_state:
@@ -124,11 +119,9 @@ if st.session_state.current_page == "PD":
                     st.error("กรุณาระบุรหัสสินค้าให้ถูกต้อง")
 
     if st.session_state.temp_items:
-        # แสดงผลตารางที่ปรับแต่งรหัสและจำนวนให้ตัวหนาอ่านง่าย
         df_temp = pd.DataFrame(st.session_state.temp_items)
         st.write("**รายการเตรียมจัดส่งขณะนี้:**")
         
-        # ปรับการแสดงผลในตารางให้อ่านง่ายขึ้นด้วย Markdown บังคับตัวหนา
         df_display = df_temp.copy()
         df_display['SKU'] = df_display['SKU'].apply(lambda x: f"**{x}**")
         df_display['Qty'] = df_display['Qty'].apply(lambda x: f"**{x:,} ชิ้น**")
@@ -180,7 +173,6 @@ elif st.session_state.current_page == "QC":
     else:
         for idx in qc_pending_indices:
             row = df.loc[idx]
-            # ปรับหัวข้อ Expander ให้โชว์ตัวหนาขนาดใหญ่สำหรับ SKU และ จำนวนชิ้น
             title_text = f"📋 คิวงาน: {row['JobID']} | รหัสสินค้า: {row['SKU']} | จำนวนจากฝ่ายผลิต: {row['PD_Qty']:,} ชิ้น"
             with st.expander(title_text):
                 st.markdown(f"### รหัสสินค้า (SKU): `{row['SKU']}`")
@@ -204,3 +196,16 @@ elif st.session_state.current_page == "QC":
                 with col2:
                     if st.button("ปฏิเสธมาตรฐาน/ตีกลับงานเสีย (Reject/NG)", key=f"qc_rej_{row['JobID']}"):
                         if qc_name.strip() != "":
+                            df.at[idx, 'QC_Status'] = 'ตีกลับ/สเปกไม่ผ่าน (NG)'
+                            df.at[idx, 'QC_Name'] = qc_name
+                            df.at[idx, 'FG_Status'] = 'ยกเลิก (QC ไม่ผ่าน)'
+                            save_data(df)
+                            st.rerun()
+                        else:
+                            st.error("กรุณาระบุชื่อพนักงานตรวจสอบคุณภาพ (QC) ก่อนกดยืนยัน")
+
+# ----------------------------------------------------
+# 3. คลังสินค้า (FG Receiver)
+# ----------------------------------------------------
+elif st.session_state.current_page == "FG":
+    st.header("หน้าจอส่วนงาน: ฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG)")
