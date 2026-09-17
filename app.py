@@ -62,7 +62,7 @@ st.markdown(f"""
     div.stButton > button:first-child {{ font-weight: bold; border-radius: 6px; }}
     .st-emotion-cache-164746f > div:nth-child(2) button {{ background-color: {bg_pd} !important; color: #1B5E20 !important; }}
     .st-emotion-cache-164746f > div:nth-child(3) button {{ background-color: {bg_qc} !important; color: {"#B71C1C" if count_qc > 0 else "#1B5E20"} !important; border: 1px solid {"#EF9A9A" if count_qc > 0 else "#A5D6A7"} !important; }}
-    .st-emotion-cache-164746f > div:nth-child(4) button {{ background-color: {bg_fg} !important; color: {"#B71C1C" if count_qc > 0 else "#1B5E20"} !important; border: 1px solid {"#EF9A9A" if count_qc > 0 else "#A5D6A7"} !important; }}
+    .st-emotion-cache-164746f > div:nth-child(4) button {{ background-color: {bg_fg} !important; color: {"#B71C1C" if count_qc > 0 else "#1B5E20"} !important; border: 1px solid {"#EF9A9A" if count_fg > 0 else "#A5D6A7"} !important; }}
     .st-emotion-cache-164746f > div:nth-child(5) button {{ background-color: {bg_erp} !important; color: #0D47A1 !important; }}
     </style>
 """, unsafe_allow_html=True)
@@ -103,7 +103,8 @@ if st.session_state.current_page == "PD":
         st.session_state.temp_items = []
 
     with st.container(border=True):
-        col_sku, col_qty, col_btn = st.columns()
+        # 🔥 แก้ไขจุดนี้เรียบร้อยครับ: ใส่เลข 3 เข้าไปเพื่อให้ระบุจำนวนคอลลัมน์ชัดเจน
+        col_sku, col_qty, col_btn = st.columns(3)
         with col_sku:
             input_sku = st.text_input("ระบุรหัสสินค้า หรือสแกนบาร์โค้ด (SKU):", key="input_sku")
         with col_qty:
@@ -208,4 +209,3 @@ elif st.session_state.current_page == "QC":
 # 3. คลังสินค้า (FG Receiver)
 # ----------------------------------------------------
 elif st.session_state.current_page == "FG":
-    st.header("หน้าจอส่วนงาน: ฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG)")
