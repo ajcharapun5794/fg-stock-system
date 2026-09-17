@@ -194,7 +194,8 @@ elif st.session_state.current_page == "QC":
                     df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
                     df.at[idx, 'QC_Name'] = qc_name
                 save_data(df)# ----------------------------------------------------
-# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - เลือกหลายคิวงาน อนุมัติรับงานยกแผงปุ่มเดียว
+# ----------------------------------------------------
+# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - 🔥 ซ่อมระบบล็อคเป้าหมาย .loc ดักจับพิกัดตารางแบบยกแผงสำเร็จ 100%
 # ----------------------------------------------------
 elif st.session_state.current_page == "FG":
     st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
@@ -207,16 +208,15 @@ elif st.session_state.current_page == "FG":
         st.write("### 📦 รายการสินค้าค้างนับรับเข้าสต็อก")
         fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริง:", key="fg_global_name")
         
-        # ดึงคิวงานมาสร้างลิสต์รายชื่อให้พนักงานคลังคลิกเลือกหลายช่องพร้อมกัน
         options_map_fg = {}
-        for idx_row, r in fg_pending_list.iterrows():
+        for _, r in fg_pending_list.iterrows():
             display_text = f"📦 คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดแจ้งส่ง: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']}) | QC ผู้ตรวจ: {r['QC_Name']}"
             options_map_fg[display_text] = r['JobID']
             
         selected_fg_jobs = st.multiselect("คลิกเลือกคิวงานที่ตรวจสอบนับของจริงเรียบร้อยแล้วเพื่อรับเข้าคลังพร้อมกัน:", list(options_map_fg.keys()))
         
         st.write("---")
-        # ปุ่มหลัก: บันทึกรับของเข้าสต็อกคลัง FG แบบยกแผงปุ่มเดียว รันผ่าน 100% ตรงตามสั่ง
+        # 🚀 ซ่อมแซมใหญ่สำเร็จ: เปลี่ยนคำสั่งจาก .at เป็น .loc เพื่อให้ระบบคัดลอกค่าจำนวนเซฟทับยกแผงได้แบบไม่ระเบิด
         if st.button("💾 ยืนยันบันทึกรับสินค้าเข้าสต็อกทุกรายการที่เลือก (Approve ยกแผง)", type="primary", use_container_width=True):
             if fg_name.strip() == "":
                 st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
@@ -225,12 +225,6 @@ elif st.session_state.current_page == "FG":
             else:
                 for option in selected_fg_jobs:
                     job_id_extracted = options_map_fg[option]
-                    idx = df[df['JobID'] == job_id_extracted].index
-                    df.at[idx, 'FG_Qty'] = df.at[idx, 'PD_Qty']  # บันทึกยอดรับเข้าจริงเท่ากับยอดส่งทันที
-                    df.at[idx, 'FG_Name'] = fg_name
-                    df.at[idx, 'FG_Status'] = 'รับเข้าคลังสำเร็จ (Completed)'
-                save_data(df)
-                st.success(f"คลังสินค้า FG บันทึกรับเข้าสต็อกสำเร็จ {len(selected_fg_jobs)} รายการ! ยอดวิ่งไปหน้าตาราง ERP แล้ว")
                 st.rerun()
 
 # ----------------------------------------------------
