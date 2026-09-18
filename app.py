@@ -165,8 +165,18 @@ elif st.session_state.current_page == "QC":
     df = st.session_state.current_db
     qc_pending_list = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)']
     
-    if qc_pending_list.empty:
-        st.info("ไม่มีรายการสินค้าค้างตรวจสอบคุณภาพในระบบขณะนี้")
+  if qc_pending_list.empty:
+        st.info("ไม่มีรายการสินค้าค้างตรวจสเปก")
+    else:
+        st.write("### รายการสินค้าค้างตรวจสเปก")
+        qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key="fg_global_name")
+
+        options_map_qc = {}
+        for r in qc_pending_list.to_dict('records'):
+            display_text = f"ใบงาน: {r['job_id']} | รหัสสินค้า: {r['product_id']} | จำนวน: {r['qty']} ชิ้น (รอบ: {r['round_time']})"
+            options_map_qc[display_text] = (r['job_id'], r['refrun_id'])
+
+        selected_qc_jobs = st.multiselect("คลิกเลือกตัวงานสินค้าที่ตรวจสอบผ่านเกณฑ์พร้อมกันหลายรายการ:", list(options_map_qc.keys()))
     else:
         st.write("### 📋 รายการสินค้าค้างตรวจสเปก")
       for r in qc_pending_list.to_dict('records'):
