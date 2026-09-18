@@ -243,23 +243,33 @@ elif st.session_state.current_page == "FG":
                 st.success("บันทึกข้อมูลและรับสินค้าเข้าคลังสำเร็จเรียบร้อยแล้ว!")
                 st.rerun()
 
-# ----------------------------------------------------
-# 4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin) - ดูยอดรับจริงทั้งหมด และนำลง ERP
-# ----------------------------------------------------
+# ##############################################################################
+# # 4. ฝ่ายบริหารข้อมูลคลัง (ERP) - แสดงตารางสรุปและ Export ข้อมูลล่าสุด
+# ##############################################################################
 elif st.session_state.current_page == "ERP":
-    st.header("หน้าจอส่วนงาน: ฝ่ายบริหารข้อมูลคลังสินค้า (ERP Administrator)")
-    st.subheader("รายงานสรุปตรวจสอบยอดรับจริงหน้างาน 100% เพื่อนำข้อมูลคีย์ลงระบบ ERP")
+    st.subheader("หน้าจอส่วนงาน: ฝ่ายบริหารข้อมูลคลังสินค้า (ERP Administrator)")
+    st.write("### รายงานสรุปตรวจสอบยอดรับจริงหน้างาน 100% เพื่อนำข้อมูลคีย์ลงระบบ ERP")
     
-    df = st.session_state.current_db
-    st.dataframe(df[['JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty', 'QC_Status', 'QC_Name', 'FG_Qty', 'FG_Status', 'FG_Name']], use_container_width=True)
+    # ดึงข้อมูลล่าสุดจากเซสชันปัจจุบันเสมอ
+    df_latest = st.session_state.current_db
     
-    completed_jobs = df[df['FG_Status'] == 'รับเข้าคลังสำเร็จ (Completed)']
-    if not completed_jobs.empty:
-        csv = completed_jobs.to_csv(index=False).encode('utf-8-sig')
-        st.download_button(
-            label="📥 ดาวน์โหลดไฟล์รายงานยอดรับจริง (.CSV) สำหรับนำข้อมูลอัปโหลดเข้า ERP ของบริษัททันที",
-            data=csv,
-            file_name="Finished_Goods_Verified_Report.csv",
-            mime='text/csv',
-            use_container_width=True
-        )
+    # แสดงตารางให้ตรวจสอบบนหน้าจอ
+    st.dataframe(df_latest, use_container_width=True)
+    
+    st.write("---")
+    
+    # ก่อนจะทำการดาวน์โหลด ให้บังคับเซฟข้อมูลล่าสุดลงไฟล์ระบบก่อน เพื่อความชัวร์ 100%
+    save_data(df_latest)
+    
+    # แปลงข้อมูลล่าสุดเป็น CSV สำหรับให้ผู้ใช้กดดาวน์โหลด
+    csv_data = df_latest.to_csv(index=False).encode('utf-8-sig')
+    
+    # ปุ่มดาวน์โหลดไฟล์ที่ผูกกับข้อมูลล่าสุดในหน่วยความจำ
+    st.download_button(
+        label="📥 ดาวน์โหลดรายงานสรุปข้อมูลล่าสุด (Excel/CSV)",
+        data=csv_data,
+        file_name="ERP_Inventory_Report_Latest.csv",
+        mime="text/csv",
+        use_container_width=True,
+        key="download_latest_report"
+    )
