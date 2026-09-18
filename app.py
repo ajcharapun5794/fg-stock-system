@@ -160,9 +160,9 @@ if st.session_state.current_page == "PD":
     else:
         st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
-# ----------------------------------------------------
-# 2. แผนกควบคุมคุณภาพ (QC)
-# ----------------------------------------------------
+# ##############################################################################
+# # 2. แผนกควบคุมคุณภาพ (QC) - ตรวจสอบคุณภาพสินค้า
+# ##############################################################################
 elif st.session_state.current_page == "QC":
     st.subheader("ส่วนงานฝั่งตรวจสอบคุณภาพ (Quality Control - QC): ตรวจสอบและอัปเดตสเปกสินค้า")
     df = st.session_state.current_db.copy()
@@ -188,60 +188,59 @@ elif st.session_state.current_page == "QC":
             elif not selected_qc_jobs:
                 st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
             else:
-               for option in selected_qc_jobs:
+                for option in selected_qc_jobs:
                     job_id_extracted = options_map_qc[option]
-                    
-                    # ค้นหาเงื่อนไขและเจาะจงดึง Index ตัวแรกสุดออกมาใช้งานตรง ๆ ด้วย [0]
                     matching_rows = df[df['JobID'] == job_id_extracted].index
                     if not matching_rows.empty:
                         idx = matching_rows[0]
-                        
-                        # 1. อัปเดตสถานะของฝั่ง QC เข้าสู่ตารางข้อมูล
                         df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
                         df.at[idx, 'QC_Name'] = qc_name
-                        
-                        # 2. ปรับสถานะฝั่ง FG เพื่อให้ข้อมูลเด้งข้ามไปแสดงในส่วนที่ 3
                         df.at[idx, 'FG_Status'] = 'รอคลังรับเข้า (Pending FG)'
                 
-                # 3. เซฟค่าลงระบบหน่วยความจำหลักของหน้าเว็บ (session_state)
                 st.session_state.current_db = df
-                
-                # 4. บันทึกข้อมูลลงฐานข้อมูล/ไฟล์ให้สำเร็จเรียบร้อย
                 save_data(df)
-                
                 st.success("อนุมัติงาน QC สำเร็จ ข้อมูลถูกส่งต่อไปยังแผนกคลังสินค้า (FG) แล้ว!")
                 st.rerun()
-# ----------------------------------------------------
-# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - 🔥 ซ่อมระบบล็อคเป้าหมาย .loc ดักจับพิกัดตารางแบบยกแผงสำเร็จ 100%
-# ----------------------------------------------------
+
+# ##############################################################################
+# # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - ตรวจนับและรับเข้าคลัง 100%
+# ##############################################################################
 elif st.session_state.current_page == "FG":
-    st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
-    df = st.session_state.current_db
+    st.subheader("ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
+    df = st.session_state.current_db.copy()
     fg_pending_list = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)']
-    
+
     if fg_pending_list.empty:
-        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังสินค้าสำเร็จรูปในระบบขณะนี้")
+        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังในระบบขณะนี้")
     else:
-        st.write("### 📦 รายการสินค้าค้างนับรับเข้าสต็อก")
-        fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริง:", key="fg_global_name")
-        
+        st.write("### รายการสินค้าค้างรับเข้าเลือก")
+        fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจรับ:", key="fg_global_name")
+
         options_map_fg = {}
         for _, r in fg_pending_list.iterrows():
-            display_text = f"📦 คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดแจ้งส่ง: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']}) | QC ผู้ตรวจ: {r['QC_Name']}"
+            display_text = f"📦 ตัวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดจัดส่ง: {r['PD_Qty']} | ชั้น (ตอน): {r['PD_Shift']} | QC ผู้ตรวจ: {r['QC_Name']}"
             options_map_fg[display_text] = r['JobID']
-            
-        selected_fg_jobs = st.multiselect("คลิกเลือกคิวงานที่ตรวจสอบนับของจริงเรียบร้อยแล้วเพื่อรับเข้าคลังพร้อมกัน:", list(options_map_fg.keys()))
-        
+
+        selected_fg_jobs = st.multiselect("เลือกงานจากรหัสสินค้าเพื่อตรวจสอบและรับเข้าพร้อมกัน:", list(options_map_fg.keys()))
+
         st.write("---")
-        # 🚀 ซ่อมแซมใหญ่สำเร็จ: เปลี่ยนคำสั่งจาก .at เป็น .loc เพื่อให้ระบบคัดลอกค่าจำนวนเซฟทับยกแผงได้แบบไม่ระเบิด
-        if st.button("💾 ยืนยันบันทึกรับสินค้าเข้าสต็อกทุกรายการที่เลือก (Approve )", type="primary", use_container_width=True):
+        if st.button("อนุมัติรับสินค้าเข้าคลัง (Approve พร้อมกัน)", type="primary", use_container_width=True):
             if fg_name.strip() == "":
-                st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
+                st.error("กรุณาระบุชื่อพนักงาน FG ก่อนทำการกดยืนยันข้อมูล")
             elif not selected_fg_jobs:
-                st.error("กรุณาคลิกเลือกรายการคิวงานสินค้าที่ต้องการรับเข้าสต็อกอย่างน้อย 1 รายการ")
+                st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
             else:
                 for option in selected_fg_jobs:
                     job_id_extracted = options_map_fg[option]
+                    matching_rows = df[df['JobID'] == job_id_extracted].index
+                    if not matching_rows.empty:
+                        idx = matching_rows[0]
+                        df.at[idx, 'FG_Status'] = 'รับสินค้าเข้าคลังแล้ว (Approved)'
+                        df.at[idx, 'FG_Name'] = fg_name
+                
+                st.session_state.current_db = df
+                save_data(df)
+                st.success("บันทึกข้อมูลและรับสินค้าเข้าคลังสำเร็จเรียบร้อยแล้ว!")
                 st.rerun()
 
 # ----------------------------------------------------
