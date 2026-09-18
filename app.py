@@ -114,7 +114,8 @@ if st.session_state.current_page == "PD":
         
         job_to_fix = st.selectbox("เลือกรหัสใบงานที่โดนตีกลับเพื่อแก้ไข:", ["-- เลือกใบงาน --"] + list(rejected_jobs['JobID'].unique()))
         if job_to_fix != "-- เลือกใบงาน --":
-            row_data = df[df['JobID'] == job_to_fix].iloc
+            # 🛠️ แก้ไขบั๊กจุดที่ 118: เพิ่ม .iloc[0] เพื่อให้เจาะจงดึงเฉพาะข้อมูลแถวแรกสุดออกมาใช้งานได้ถูกต้อง
+            row_data = df[df['JobID'] == job_to_fix].iloc[0]
             st.warning(f"📋 รายละเอียดเดิม -> SKU: {row_data['SKU']} | จำนวนเดิม: {row_data['PD_Qty']}")
             
             fix_sku = st.text_input("แก้ไขรหัสสินค้า (SKU):", value=row_data['SKU'], key="fix_sku_input")
@@ -139,11 +140,9 @@ if st.session_state.current_page == "PD":
     with col_head1:
         pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตผู้บันทึก:", key="pd_operator_name")
     with col_head2:
-        # ลบคำว่า (พิมพ์คีย์เองได้) ออกเรียบร้อยแล้ว
         now_date = datetime.now().strftime("%Y-%m-%d")
         time_input = st.text_input("วันที่บันทึกข้อมูล:", value=now_date, key="pd_time_input")
         
-    # ลบคำว่า (พิมพ์เวลาคีย์เองได้) ออกเรียบร้อยแล้ว
     shift_input = st.text_input("ชั้น (ตอน) / กะการทำงาน:", value="08.00", key="pd_shift_input")
 
     st.write("---")
@@ -152,7 +151,6 @@ if st.session_state.current_page == "PD":
     if "pd_temp_items" not in st.session_state:
         st.session_state.pd_temp_items = pd.DataFrame(columns=['โค้ดสินค้า (SKU)', 'จำนวน'])
 
-    # 🛠️ แก้ไขบั๊กจุดที่ 155: ใส่เลข 3 เข้าไปในช่อง st.columns() เพื่อให้แสดง 3 คอลัมน์ได้ถูกต้อง
     col_add1, col_add2, col_add3 = st.columns(3)
     with col_add1:
         sku_add = st.text_input("กรอกรหัสสินค้า (SKU):", key="sku_add_input")
