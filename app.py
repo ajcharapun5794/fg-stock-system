@@ -195,37 +195,45 @@ elif st.session_state.current_page == "QC":
                     df.at[idx, 'QC_Name'] = qc_name         
                 save_data(df)
                   
-# ----------------------------------------------------
-# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - 🔥 ซ่อมระบบล็อคเป้าหมาย .loc ดักจับพิกัดตารางแบบยกแผงสำเร็จ 100%
-# ----------------------------------------------------
+# ##############################################################################
+# # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - บันทึกและเปิดเอกสาร Job เพื่อตรวจนับและรับเข้าคลัง 100%
+# ##############################################################################
 elif st.session_state.current_page == "FG":
-    st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
+    st.subheader("ส่วนงานฝั่งคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับและรับเข้าจริง")
     df = st.session_state.current_db
     fg_pending_list = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)']
-    
+
     if fg_pending_list.empty:
-        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังสินค้าสำเร็จรูปในระบบขณะนี้")
+        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังในระบบขณะนี้")
     else:
-        st.write("### 📦 รายการสินค้าค้างนับรับเข้าสต็อก")
-        fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริง:", key="fg_global_name")
-        
+        st.write("### รายการสินค้าค้างรับเข้าเลือก")
+        fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจรับ:", key="fg_global_name")
+
         options_map_fg = {}
         for _, r in fg_pending_list.iterrows():
-            display_text = f"📦 คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดแจ้งส่ง: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']}) | QC ผู้ตรวจ: {r['QC_Name']}"
+            display_text = f"📦 ตัวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดจัดส่ง: {r['PO_Qty']} | ชั้น (ตอน): {r['PO_Shift']} | QC ผู้ตรวจ: {r['QC_Name']}"
             options_map_fg[display_text] = r['JobID']
-            
-        selected_fg_jobs = st.multiselect("คลิกเลือกคิวงานที่ตรวจสอบนับของจริงเรียบร้อยแล้วเพื่อรับเข้าคลังพร้อมกัน:", list(options_map_fg.keys()))
-        
+
+        selected_fg_jobs = st.multiselect("เลือกงานจากรหัสสินค้าเพื่อตรวจสอบและรับเข้าพร้อมกัน:", list(options_map_fg.keys()))
+
         st.write("---")
-        # 🚀 ซ่อมแซมใหญ่สำเร็จ: เปลี่ยนคำสั่งจาก .at เป็น .loc เพื่อให้ระบบคัดลอกค่าจำนวนเซฟทับยกแผงได้แบบไม่ระเบิด
-        if st.button("💾 ยืนยันบันทึกรับสินค้าเข้าสต็อกทุกรายการที่เลือก (Approve )", type="primary", use_container_width=True):
+        if st.button("อนุมัติรับสินค้าเข้าคลัง (Approve พร้อมกัน)", type="primary", use_container_width=True):
             if fg_name.strip() == "":
-                st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
+                st.error("กรุณาระบุชื่อพนักงาน FG ก่อนทำการกดยืนยันข้อมูล")
             elif not selected_fg_jobs:
-                st.error("กรุณาคลิกเลือกรายการคิวงานสินค้าที่ต้องการรับเข้าสต็อกอย่างน้อย 1 รายการ")
+                st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
             else:
                 for option in selected_fg_jobs:
                     job_id_extracted = options_map_fg[option]
+                    idx = df[df['JobID'] == job_id_extracted].index
+                    
+                    # อัปเดตสถานะและชื่อผู้รับเข้าใน DataFrame หลัก
+                    df.at[idx, 'FG_Status'] = 'รับสินค้าเข้าคลังแล้ว (Approved)'
+                    df.at[idx, 'FG_Name'] = fg_name
+                
+                # บันทึกข้อมูลลงฐานข้อมูล/ไฟล์
+                save_data(df)
+                st.success("บันทึกข้อมูลและรับสินค้าเข้าคลังสำเร็จเรียบร้อยแล้ว!")
                 st.rerun()
 
 # ----------------------------------------------------
