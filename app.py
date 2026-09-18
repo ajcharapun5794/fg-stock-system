@@ -161,11 +161,13 @@ if st.session_state.current_page == "PD":
         st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
 # ##############################################################################
-# # 2. แผนกควบคุมคุณภาพ (QC) - ตรวจสอบคุณภาพสินค้า
+# # 2. แผนกควบคุมคุณภาพ (QC) - ตรวจสอบคุณภาพสินค้า (มีระบบบันทึกผ่านและตีกลับ)
 # ##############################################################################
 elif st.session_state.current_page == "QC":
     st.subheader("ส่วนงานฝั่งตรวจสอบคุณภาพ (Quality Control - QC): ตรวจสอบและอัปเดตสเปกสินค้า")
     df = st.session_state.current_db.copy()
+    
+    # ดึงรายการงานที่รอ QC ตรวจสอบ รวมถึงงานที่เคยโดน Reject (ถ้าต้องการแก้ไขสเตตัสซ้ำ)
     qc_pending_list = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)']
 
     if qc_pending_list.empty:
@@ -179,29 +181,58 @@ elif st.session_state.current_page == "QC":
             display_text = f"📦 ตัวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | จำนวน: {r['PD_Qty']} | ชั้น (ตอน): {r['PD_Shift']}"
             options_map_qc[display_text] = r['JobID']
 
-        selected_qc_jobs = st.multiselect("เลือกรายการรหัสสินค้าที่ต้องการอนุมัติผ่านสเปกพร้อมกัน:", list(options_map_qc.keys()))
+        selected_qc_jobs = st.multiselect("เลือกรายการรหัสสินค้าที่ต้องการจัดการระบบ:", list(options_map_qc.keys()))
 
         st.write("---")
-        if st.button("อนุมัติมาตรฐานตามสเปกรายการที่เลือก (Approve พร้อมกัน)", type="primary", use_container_width=True):
-            if qc_name.strip() == "":
-                st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
-            elif not selected_qc_jobs:
-                st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
-            else:
-                for option in selected_qc_jobs:
-                    job_id_extracted = options_map_qc[option]
-                    matching_rows = df[df['JobID'] == job_id_extracted].index
-                    if not matching_rows.empty:
-                        idx = matching_rows[0]
-                        df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
-                        df.at[idx, 'QC_Name'] = qc_name
-                        df.at[idx, 'FG_Status'] = 'รอคลังรับเข้า (Pending FG)'
-                
-                st.session_state.current_db = df
-                save_data(df)
-                st.success("อนุมัติงาน QC สำเร็จ ข้อมูลถูกส่งต่อไปยังแผนกคลังสินค้า (FG) แล้ว!")
-                st.rerun()
+        
+        # จัดวางปุ่ม Approve และ ปุ่ม Reject ให้อยู่เคียงข้างกันในระนาบที่สวยงาม
+        col_approve, col_reject = st.columns(2)
+        
+        # 🟢 ปุ่มที่ 1: อนุมัติผ่านตามปกติ (ส่งไป FG)
+        with col_approve:
+            if st.button("🟢 อนุมัติผ่านสเปก (ส่งให้คลัง FG)", type="primary", use_container_width=True):
+                if qc_name.strip() == "":
+                    st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
+                elif not selected_qc_jobs:
+                    st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
+                else:
+                    for option in selected_qc_jobs:
+                        job_id_extracted = options_map_qc[option]
+                        matching_rows = df[df['JobID'] == job_id_extracted].index
+                        if not matching_rows.empty:
+                            idx = matching_rows
+                            df.loc[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
+                            df.loc[idx, 'QC_Name'] = qc_name
+                            df.loc[idx, 'FG_Status'] = 'รอคลังรับเข้า (Pending FG)'
+                    
+                    st.session_state.current_db = df
+                    save_data(df)
+                    st.success("อนุมัติงาน QC สำเร็จ ข้อมูลถูกส่งต่อไปยังแผนกคลังสินค้า (FG) แล้ว!")
+                    st.rerun()
 
+        # 🔴 ปุ่มที่ 2: ปฏิเสธสเปกไม่ผ่าน (ตีกลับไปให้หน้างานผลิต PD)
+        with col_reject:
+            if st.button("🔴 ไม่ผ่านสเปก (Reject ตีกลับไปฝ่ายผลิต PD)", type="secondary", use_container_width=True):
+                if qc_name.strip() == "":
+                    st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการสั่งปฏิเสธข้อมูล")
+                elif not selected_qc_jobs:
+                    st.error("กรุณาเลือกรายการสินค้าที่ต้องการตีกลับอย่างน้อย 1 รายการ")
+                else:
+                    for option in selected_qc_jobs:
+                        job_id_extracted = options_map_qc[option]
+                        matching_rows = df[df['JobID'] == job_id_extracted].index
+                        if not matching_rows.empty:
+                            idx = matching_rows
+                            
+                            # อัปเดตสถานะตีกลับ และล้างฟีลด์ฝั่งคลังออกไปเพื่อส่งกลับไปให้ต้นทาง
+                            df.loc[idx, 'QC_Status'] = 'ถูกตีกลับจาก QC (Rejected)'
+                            df.loc[idx, 'QC_Name'] = qc_name
+                            df.loc[idx, 'FG_Status'] = 'งานถูกตีกลับไปแก้ไข'
+                    
+                    st.session_state.current_db = df
+                    save_data(df)
+                    st.warning("ทำการตีกลับรายการสินค้าที่ไม่ผ่านสเปก ส่งคืนให้ฝ่ายผลิต (PD) เรียบร้อย!")
+                    st.rerun()
 # ##############################################################################
 # # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - ตรวจนับและรับเข้าคลัง 100%
 # ##############################################################################
