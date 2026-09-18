@@ -188,21 +188,25 @@ elif st.session_state.current_page == "QC":
             elif not selected_qc_jobs:
                 st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
             else:
-                for option in selected_qc_jobs:
+               for option in selected_qc_jobs:
                     job_id_extracted = options_map_qc[option]
-                    idx = df[df['JobID'] == job_id_extracted].index
                     
-                    # 1. อัปเดตสถานะของฝั่ง QC
-                    df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
-                    df.at[idx, 'QC_Name'] = qc_name
-                    
-                    # 2. ส่งคีย์สำคัญเพื่อให้ข้อมูลเด้งไปปรากฏในส่วนที่ 3 (FG)
-                    df.at[idx, 'FG_Status'] = 'รอคลังรับเข้า (Pending FG)'
+                    # ค้นหาเงื่อนไขและเจาะจงดึง Index ตัวแรกสุดออกมาใช้งานตรง ๆ ด้วย [0]
+                    matching_rows = df[df['JobID'] == job_id_extracted].index
+                    if not matching_rows.empty:
+                        idx = matching_rows[0]
+                        
+                        # 1. อัปเดตสถานะของฝั่ง QC เข้าสู่ตารางข้อมูล
+                        df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
+                        df.at[idx, 'QC_Name'] = qc_name
+                        
+                        # 2. ปรับสถานะฝั่ง FG เพื่อให้ข้อมูลเด้งข้ามไปแสดงในส่วนที่ 3
+                        df.at[idx, 'FG_Status'] = 'รอคลังรับเข้า (Pending FG)'
                 
-                # 3. อัปเดตข้อมูลกลับเข้าสู่ตัวแปรระบบหลักเหมือนส่วนที่ 1
+                # 3. เซฟค่าลงระบบหน่วยความจำหลักของหน้าเว็บ (session_state)
                 st.session_state.current_db = df
                 
-                # 4. บันทึกข้อมูลลงฐานข้อมูล/ไฟล์สำเร็จ
+                # 4. บันทึกข้อมูลลงฐานข้อมูล/ไฟล์ให้สำเร็จเรียบร้อย
                 save_data(df)
                 
                 st.success("อนุมัติงาน QC สำเร็จ ข้อมูลถูกส่งต่อไปยังแผนกคลังสินค้า (FG) แล้ว!")
