@@ -169,7 +169,9 @@ elif st.session_state.current_page == "QC":
         st.info("ไม่มีรายการสินค้าค้างตรวจสอบคุณภาพในระบบขณะนี้")
     else:
         st.write("### 📋 รายการสินค้าค้างตรวจสเปก")
-        qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key="qc_global_name")
+      for r in qc_pending_list.to_dict('records'):
+            display_text = f"ใบงาน: {r['job_0001']} | รหัสสินค้า: {r['product_id']} | จำนวน: {r['qty']} ชิ้น (รอบ: {r['round_time']})"
+            options_map_qc[display_text] = (r['job_id'], r['refrun_id'])
         
         options_map_qc = {}
         for _, r in qc_pending_list.iterrows():
