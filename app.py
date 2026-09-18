@@ -180,15 +180,14 @@ elif st.session_state.current_page == "QC":
             options_map_qc[display_text] = r['JobID']
             
         selected_qc_jobs = st.multiselect("เลือกรายการรหัสสินค้าที่ต้องการอนุมัติผ่านเกณฑ์พร้อมกัน:", list(options_map_qc.keys()))
-        
-        st.write("---")
-        if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ทุกรายการที่เลือก (Approve พร้อมกัน)", type="primary", use_container_width=True):
+      st.write("---")
+        if st.button("อนุมัติสถานะคุณภาพ (Approve พร้อมกัน)", type="primary", use_container_width=True):
             if qc_name.strip() == "":
                 st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
             elif not selected_qc_jobs:
                 st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
             else:
-           for option in selected_qc_jobs:
+                for option in selected_qc_jobs:
                     job_id_extracted = options_map_qc[option]
                     idx = df[df['JobID'] == job_id_extracted].index
                     
