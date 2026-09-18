@@ -100,94 +100,66 @@ if nav_erp: st.session_state.current_page = "ERP"; st.rerun()
 # ====================================================
 
 # ##############################################################################
-# # 1. แผนกฝ่ายผลิต (PD) - บันทึกงาน (คีย์ได้หลายโค้ด/ลบทีละอัน) + แก้ไขงาน Reject
+# # 1. แผนกฝ่ายผลิต (PD) - ฟอร์มคีย์งานปกติ + กล่องแจ้งเตือนแก้ไขงาน Reject
 # ##############################################################################
-elif st.session_state.current_page == "PD":
+if st.session_state.current_page == "PD":
     df = st.session_state.current_db.copy()
     
-    # เช็กว่ามีงานโดน QC ตีกลับมาหรือไม่
-    rejected_list = df[df['QC_Status'] == 'ถูกตีกลับจาก QC (Rejected)']
+    # ดึงรายการเฉพาะงานที่โดน QC ตีกลับมา
+    rejected_jobs = df[df['QC_Status'] == 'ถูกตีกลับจาก QC (Rejected)']
     
-    # ข้อกำหนด: เวลาที่แจ้งเตือนกลับไปที่ PD ให้ปรับหัวข้อหรือสไตล์แสดงผลเด่นชัดเป็นสีแดง
-    if not rejected_list.empty:
-        st.markdown("<h2 style='color: #FF4B4B;'>⚠️ [REJECTED] มีงานถูกตีกลับจาก QC กรุณาแก้ไขข้อมูล!</h2>", unsafe_allow_html=True)
-    else:
-        st.subheader("ส่วนงานฝั่งฝ่ายผลิต (Production - PD): บันทึกและแก้ไขยอดจัดส่ง")
-
-    # ==========================================================================
-    # ส่วนที่ 1.1: 🚨 ระบบจัดการและแก้ไขงานที่โดน QC ตีกลับมา (แก้ไขทั้งรหัสสินค้า และ จำนวน)
-    # ==========================================================================
-    if not rejected_list.empty:
-        st.error(f"ตรวจพบใบงานไม่ผ่านการตรวจสอบจำนวน {len(rejected_list)} รายการ สามารถแก้ไขรหัสและจำนวนที่โดนตีกลับด้านล่างนี้:")
+    # ระบบแจ้งเตือนงานโดนตีกลับ (จะแสดงผลด้านบนสุดเฉพาะตอนที่มีงานพัง)
+    if not rejected_jobs.empty:
+        st.error(f"🔴 แจ้งเตือนจาก QC: มีใบงานถูกตีกลับมาแก้ไขจำนวน {len(rejected_jobs)} รายการ!")
         
-        # ใช้ st.data_editor เพื่อให้คนใช้งานสามารถกดแก้รหัส SKU และ จำนวนได้พร้อมกันในตารางเดียว
-        editable_rejects = rejected_list[['JobID', 'SKU', 'PD_Qty', 'PD_Shift', 'QC_Name']].copy()
-        
-        st.write("💡 *ดับเบิ้ลคลิกที่ช่อง SKU หรือ PD_Qty เพื่อพิมพ์แก้ไขข้อมูลรายใบงานได้ทันที*")
-        edited_reject_df = st.data_editor(
-            editable_rejects,
-            column_config={
-                "JobID": st.column_config.TextColumn("รหัสใบงาน", disabled=True),
-                "SKU": st.column_config.TextColumn("รหัสสินค้า (SKU)"),
-                "PD_Qty": st.column_config.NumberColumn("จำนวนผลิตสำเร็จ", min_value=1),
-                "PD_Shift": st.column_config.TextColumn("ชั้น(ตอน)", disabled=True),
-                "QC_Name": st.column_config.TextColumn("QC ผู้ตีกลับ", disabled=True),
-            },
-            hide_index=True,
-            key="pd_reject_editor"
-        )
-        
-        if st.button("💾 บันทึกการแก้ไขงาน Reject ทั้งหมดและส่งให้ QC ตรวจใหม่", type="primary", use_container_width=True):
-            for _, row in edited_reject_df.iterrows():
-                idx = df[df['JobID'] == row['JobID']].index
-                if not idx.empty:
-                    # อัปเดตทั้ง รหัสสินค้า (โค้ด) และ จำนวนใหม่
-                    df.loc[idx, 'SKU'] = row['SKU']
-                    df.loc[idx, 'PD_Qty'] = row['PD_Qty']
-                    # ดีดสเตตัสกลับไปให้ QC ตรวจสอบใหม่อีกครั้ง
-                    df.loc[idx, 'QC_Status'] = 'รอ QC ตรวจสอบ (Pending QC)'
-                    df.loc[idx, 'QC_Name'] = '-'
-                    df.loc[idx, 'FG_Status'] = '-'
+        job_to_fix = st.selectbox("เลือกรหัสใบงานที่โดนตีกลับเพื่อแก้ไข:", ["-- เลือกใบงาน --"] + list(rejected_jobs['JobID'].unique()))
+        if job_to_fix != "-- เลือกใบงาน --":
+            row_data = df[df['JobID'] == job_to_fix].iloc
+            st.warning(f"📋 รายละเอียดเดิม -> SKU: {row_data['SKU']} | จำนวนเดิม: {row_data['PD_Qty']}")
             
-            st.session_state.current_db = df
-            save_data(df)
-            st.success("อัปเดตข้อมูลงานที่โดนตีกลับเข้าสู่ระบบ และส่งต่อให้ฝั่ง QC เรียบร้อยแล้ว!")
-            st.rerun()
+            fix_sku = st.text_input("แก้ไขรหัสสินค้า (SKU):", value=row_data['SKU'], key="fix_sku_input")
+            fix_qty = st.number_input("แก้ไขจำนวนผลิตจริง:", min_value=1, value=int(row_data['PD_Qty']), key="fix_qty_input")
             
+            if st.button("💾 บันทึกและส่งกลับไปให้ QC ตรวจซ้ำ", type="primary", use_container_width=True):
+                idx = df[df['JobID'] == job_to_fix].index
+                df.loc[idx, 'SKU'] = fix_sku
+                df.loc[idx, 'PD_Qty'] = fix_qty
+                df.loc[idx, 'QC_Status'] = 'รอ QC ตรวจสอบ (Pending QC)'
+                df.loc[idx, 'FG_Status'] = '-'
+                
+                save_data(df)
+                st.success("แก้ไขงานสำเร็จ! ส่งกลับเข้าคิวตรวจของแผนก QC แล้ว")
+                st.rerun()
         st.write("---")
-
-    # ==========================================================================
-    # ส่วนที่ 1.2: 📝 ฟอร์มบันทึกงานผลิตใหม่ (คีย์พร้อมกันได้หลายโค้ด + เลือกจัดการลบทีละอันได้)
-    # ==========================================================================
+        
+    st.subheader("ส่วนงานฝั่งฝ่ายผลิต (Production - PD): บันทึกและแก้ไขยอดจัดส่ง")
     st.write("### 📝 บันทึกข้อมูลใบงานผลิตใหม่")
     
-    # 1. ฟิลด์ข้อมูลหลักบนหัวใบงาน (กรอกครั้งเดียว)
     col_head1, col_head2 = st.columns(2)
     with col_head1:
         pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตผู้บันทึก:", key="pd_operator_name")
     with col_head2:
-        import datetime
-        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        time_input = st.text_input("เวลาที่บันทึกข้อมูล:", value=current_time, key="pd_time_input")
+        # 1. ปรับเปลี่ยน: เป็นช่องกรอกตัวอักษรแบบพิมพ์วันที่คีย์เองได้ (Default เป็นแค่วันที่ปัจจุบัน ไม่มีเวลาวินาที)
+        default_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        time_input = st.text_input("วันที่บันทึกข้อมูล (พิมพ์คีย์เองได้):", value=default_date, key="pd_time_input")
         
-    shift_input = st.selectbox("ชั้น (ตอน) / กะการทำงาน:", ["08.00", "20.00", "กะเช้า", "กะดึก"], key="pd_shift_input")
+    # 2. ปรับเปลี่ยน: เปลี่ยนจาก selectbox ตัวเลือกเดิม ให้กลายเป็นช่อง text_input พิมพ์เวลาคีย์กะเองได้ตามต้องการ
+    shift_input = st.text_input("ชั้น (ตอน) / กะการทำงาน (พิมพ์เวลาคีย์เองได้):", value="08.00", key="pd_shift_input")
 
     st.write("---")
     st.write("#### 🛒 รายการสินค้าที่จะจัดส่ง (คีย์เพิ่มได้หลายโค้ดด้านล่างนี้)")
 
-    # สร้างคลังข้อมูลชั่วคราวใน Session เพื่อเก็บรายการย่อยที่คีย์รอกดบันทึกใหญ่
     if "pd_temp_items" not in st.session_state:
         st.session_state.pd_temp_items = pd.DataFrame(columns=['โค้ดสินค้า (SKU)', 'จำนวน'])
 
-    # ช่องกรอกสำหรับแอดไอเทมทีละรายการเข้าสู่ตารางชั่วคราวก่อนบันทึก
-    col_add1, col_add2, col_add3 = st.columns([5, 3, 2])
+    col_add1, col_add2, col_add3 = st.columns()
     with col_add1:
         sku_add = st.text_input("กรอกรหัสสินค้า (SKU):", key="sku_add_input")
     with col_add2:
         qty_add = st.number_input("กรอกจำนวน:", min_value=1, value=1, key="qty_add_input")
     with col_add3:
         st.write("<div style='padding-top:28px;'></div>", unsafe_allow_html=True)
-        if st.button("➕ เพิ่มโค้ดนี้", use_container_width=True):
+        if st.button("➕ เพิ่มโค้ดสินค้า", use_container_width=True):
             if sku_add.strip() == "":
                 st.error("กรุณากรอกรหัสโค้ดสินค้า")
             else:
@@ -195,27 +167,24 @@ elif st.session_state.current_page == "PD":
                 st.session_state.pd_temp_items = pd.concat([st.session_state.pd_temp_items, new_item], ignore_index=True)
                 st.rerun()
 
-    # แสดงตารางรายการสินค้าที่กำลังคีย์สะสมไว้ (เปิดฟังก์ชันให้แก้ไขตัวเลข และเลือกคลิกแถวแล้วกดปุ่ม Delete บนคีย์บอร์ดเพื่อลบทีละอันได้เลย)
     if not st.session_state.pd_temp_items.empty:
-        st.write("📋 *รายการสะสมที่กำลังจะบันทึก (เลือกแถวแล้วกด Delete หรือพิมพ์แก้จำนวนตรงนี้ได้เลย)*")
+        st.write("📋 *รายการสะสมที่กำลังจะบันทึก (เลือกแถวแล้วกด Delete บนแป้นพิมพ์เพื่อลบทีละอัน หรือดับเบิ้ลคลิกแก้ไขตัวเลขได้)*")
         st.session_state.pd_temp_items = st.data_editor(
             st.session_state.pd_temp_items,
-            num_rows="dynamic", # ยอมให้ผู้ใช้งานกดเลือกแถวแล้วกดปุ่มลบทีละอันได้อิสระ
+            num_rows="dynamic",
             use_container_width=True,
             key="pd_items_bucket_editor"
         )
         
-        # ปุ่มกดเซฟใหญ่นำทุกโค้ดในตารางเข้าฐานข้อมูลหลัก
-        if st.button("💾 ยืนยันบันทึกข้อมูลและออกรหัส Job งานทั้งหมดลงตารางหลัก", type="primary", use_container_width=True):
+        if st.button("💾 ยืนยันบันทึกข้อมูลและออกรหัส Job งานทั้งหมด", type="primary", use_container_width=True):
             if pd_name.strip() == "":
-                st.error("กรุณากรอกชื่อพนักงานฝ่ายผลิตผู้บันทึกก่อนกดส่งข้อมูลใหญ่ครับ")
+                st.error("กรุณากรอกชื่อพนักงานฝ่ายผลิตผู้บันทึกก่อนกดส่งข้อมูลครับ")
             else:
                 for _, item in st.session_state.pd_temp_items.iterrows():
-                    # คำนวณรันเลข JobID ใหม่รายตัว
                     if not df.empty and 'JobID' in df.columns:
                         try:
                             last_job = df['JobID'].iloc[-1]
-                            last_num = int(last_job.split('-')[1])
+                            last_num = int(last_job.split('-'))
                             new_job_id = f"JOB-{last_num + 1:04d}"
                         except:
                             new_job_id = f"JOB-{len(df) + 1:04d}"
@@ -237,9 +206,7 @@ elif st.session_state.current_page == "PD":
                     }])
                     df = pd.concat([df, new_row], ignore_index=True)
                 
-                # ล้างค่าในตะกร้าคีย์ชั่วคราวหลังเซฟใหญ่สำเร็จ
                 st.session_state.pd_temp_items = pd.DataFrame(columns=['โค้ดสินค้า (SKU)', 'จำนวน'])
-                st.session_state.current_db = df
                 save_data(df)
                 st.success("บันทึกข้อมูลสินค้าทุกรหัสเข้าสู่ระบบใหญ่สำเร็จเรียบร้อยแล้ว!")
                 st.rerun()
