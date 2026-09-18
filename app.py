@@ -14,7 +14,7 @@ GSHEET_URL = f"https://google.com{GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet={SH
 # ====================================================
 if 'mock_db' not in st.session_state:
     st.session_state.mock_db = pd.DataFrame(columns=[
-        'JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty', 'QC_Status', 'QC_Name', 'FG_Qty', 'FG_Status', 'FG_Name'
+        'JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty',  'FG_Qty', 'FG_Status', 'FG_Name'
     ])
 
 def load_data():
@@ -74,15 +74,11 @@ st.sidebar.markdown(f"""
 st.sidebar.markdown('<div class="nav-badge c-green">1. แผนกฝ่ายผลิต (PD) <br><small>🟢 สถานะปกติ</small></div>', unsafe_allow_html=True)
 nav_pd = st.sidebar.button("👉 เปิดหน้าจอ ฝ่ายผลิต", key="go_pd", use_container_width=True)
 
-# แถบที่ 2: ควบคุมคุณภาพ (QC)
-st.sidebar.markdown(f'<div class="nav-badge c-qc-dynamic">2. แผนกควบคุมคุณภาพ (QC) <br><small>{txt_qc_status}</small></div>', unsafe_allow_html=True)
-nav_qc = st.sidebar.button("👉 เปิดหน้าจอ ตรวจสเปก QC", key="go_qc", use_container_width=True)
-
-# แถบที่ 3: คลังสินค้าสำเร็จรูป (FG)
+# แถบที่ 2: คลังสินค้าสำเร็จรูป (FG)
 st.sidebar.markdown(f'<div class="nav-badge c-fg_dynamic">3. แผนกคลังสินค้า (FG) <br><small>{txt_fg_status}</small></div>', unsafe_allow_html=True)
 nav_fg = st.sidebar.button("👉 เปิดหน้าจอ ตรวจนับของ FG", key="go_fg", use_container_width=True)
 
-# แถบที่ 4: แอดมินสรุปยอด ERP
+# แถบที่ 3: แอดมินสรุปยอด ERP
 st.sidebar.markdown('<div class="nav-badge c-blue">4. ฝ่ายบริหารข้อมูลคลัง (ERP) <br><small>📊 สรุปยอดข้อมูลรวม</small></div>', unsafe_allow_html=True)
 nav_erp = st.sidebar.button("👉 เปิดรายงานสรุปยอดลง ERP", key="go_erp", use_container_width=True)
 
@@ -161,51 +157,7 @@ if st.session_state.current_page == "PD":
         st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
 # ----------------------------------------------------
-# 2. แผนกควบคุมคุณภาพ (QC)
-# ----------------------------------------------------
-elif st.session_state.current_page == "QC":
-    st.subheader("ส่วนงานฝั่งตรวจสอบคุณภาพ (Quality Control - QC): ตรวจสอบและอัปเดตสเปกสินค้า")
-    df = st.session_state.current_db.copy() # ใช้ .copy() เพื่อป้องกันข้อมูลผูกติดกัน (Mutation)
-    qc_pending_list = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)']
-
-    if qc_pending_list.empty:
-        st.info("ไม่มีรายการสินค้าค้างตรวจสอบในระบบขณะนี้")
-    else:
-        st.write("### รายการสินค้าค้างตรวจสอบ")
-        qc_name = st.text_input("ชื่อเจ้าหน้าที่/พนักงานตรวจสอบคุณภาพ (QC):", key="qc_global_name")
-
-        options_map_qc = {}
-        for _, r in qc_pending_list.iterrows():
-            display_text = f"📦 ตัวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | จำนวน: {r['PD_Qty']} | ชั้น (ตอน): {r['PD_Shift']}"
-            options_map_qc[display_text] = r['JobID']
-
-        selected_qc_jobs = st.multiselect("เลือกงานจากรหัสสินค้าเพื่ออนุมัติสถานะพร้อมกัน:", list(options_map_qc.keys()))
-
-        st.write("---")
-        if st.button("อนุมัติสถานะคุณภาพ (Approve พร้อมกัน)", type="primary", use_container_width=True):
-            if qc_name.strip() == "":
-                st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการยืนยันข้อมูล")
-            elif not selected_qc_jobs:
-                st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
-            else:
-                for option in selected_qc_jobs:
-                    job_id_extracted = options_map_qc[option]
-                    idx = df[df['JobID'] == job_id_extracted].index
-                    
-                    # อัปเดตข้อมูลและเปลี่ยนสถานะส่งต่อให้ฝั่ง FG
-                    df.at[idx, 'QC_Status'] = 'ผ่านการอนุมัติ (Approved)'
-                    df.at[idx, 'QC_Name'] = qc_name
-                    df.at[idx, 'FG_Status'] = 'รอคลังรับเข้า (Pending FG)'
-                
-                # ทำการบันทึกค่ากลับเข้าระบบเซสชันหลักให้เหมือนรูปแบบของส่วนที่ 1
-                st.session_state.current_db = df
-                save_data(df)
-                
-                st.success("บันทึกผลการตรวจสอบคุณภาพ (QC) สำเร็จ และส่งต่อข้อมูลไปยังคลังสินค้าแล้ว!")
-                st.rerun()
-                  
-# ----------------------------------------------------
-# # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - บันทึกและเปิดเอกสาร Job เพื่อตรวจนับและรับเข้าคลัง 100%
+# # 2. แผนกคลังสินค้าสำเร็จรูป (FG) - บันทึกและเปิดเอกสาร Job เพื่อตรวจนับและรับเข้าคลัง 100%
 # ----------------------------------------------------
 elif st.session_state.current_page == "FG":
     st.subheader("ส่วนงานฝั่งคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับและรับเข้าจริง")
@@ -246,7 +198,7 @@ elif st.session_state.current_page == "FG":
                 st.success("บันทึกข้อมูลและรับสินค้าเข้าคลังสำเร็จเรียบร้อยแล้ว!")
                 st.rerun()
 # ----------------------------------------------------
-# 4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin) - ดูยอดรับจริงทั้งหมด และนำลง ERP
+# 3. ฝ่ายบริหารข้อมูลคลัง (ERP Admin) - ดูยอดรับจริงทั้งหมด และนำลง ERP
 # ----------------------------------------------------
 elif st.session_state.current_page == "ERP":
     st.header("หน้าจอส่วนงาน: ฝ่ายบริหารข้อมูลคลังสินค้า (ERP Administrator)")
