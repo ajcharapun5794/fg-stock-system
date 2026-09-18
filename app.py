@@ -195,9 +195,9 @@ elif st.session_state.current_page == "QC":
                     df.at[idx, 'QC_Name'] = qc_name         
                 save_data(df)
                   
-# ##############################################################################
+# ----------------------------------------------------
 # # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - บันทึกและเปิดเอกสาร Job เพื่อตรวจนับและรับเข้าคลัง 100%
-# ##############################################################################
+# ----------------------------------------------------
 elif st.session_state.current_page == "FG":
     st.subheader("ส่วนงานฝั่งคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับและรับเข้าจริง")
     df = st.session_state.current_db
@@ -211,8 +211,8 @@ elif st.session_state.current_page == "FG":
 
         options_map_fg = {}
         for _, r in fg_pending_list.iterrows():
-            # แก้ไขจาก r['PO_Qty'] เป็น r['PD_Qty'] ให้ถูกต้องตามฐานข้อมูลของคุณ
-            display_text = f"📦 ตัวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดจัดส่ง: {r['PD_Qty']} | ชั้น (ตอน): {r['PO_Shift']} | QC ผู้ตรวจ: {r['QC_Name']}"
+            # แก้ไขจาก r['PO_Shift'] เป็น r['PD_Shift'] เรียบร้อยแล้วครับ
+            display_text = f"📦 ตัวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดจัดส่ง: {r['PD_Qty']} | ชั้น (ตอน): {r['PD_Shift']} | QC ผู้ตรวจ: {r['QC_Name']}"
             options_map_fg[display_text] = r['JobID']
 
         selected_fg_jobs = st.multiselect("เลือกงานจากรหัสสินค้าเพื่อตรวจสอบและรับเข้าพร้อมกัน:", list(options_map_fg.keys()))
