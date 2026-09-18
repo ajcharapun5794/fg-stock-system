@@ -204,7 +204,7 @@ elif st.session_state.current_page == "ERP":
     st.subheader("รายงานสรุปตรวจสอบยอดรับจริงหน้างาน 100% เพื่อนำข้อมูลคีย์ลงระบบ ERP")
     
     df = st.session_state.current_db
-    st.dataframe(df[['JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty', 'QC_Status', 'QC_Name', 'FG_Qty', 'FG_Status', 'FG_Name']], use_container_width=True)
+    st.dataframe(df[['JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty',  'FG_Qty', 'FG_Status', 'FG_Name']], use_container_width=True)
     
     completed_jobs = df[df['FG_Status'] == 'รับเข้าคลังสำเร็จ (Completed)']
     if not completed_jobs.empty:
