@@ -37,6 +37,7 @@ if 'current_db' not in st.session_state:
     st.session_state.current_db = load_data()
 
 df_current = st.session_state.current_db
+ df_current = st.session_state.current_db
 
     # --- 1. คำนวณจำนวนรายการค้างของแต่ละแผนก รวมถึงงานที่โดน QC Reject ---
     count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
@@ -103,6 +104,31 @@ df_current = st.session_state.current_db
         /* สไตล์สำหรับปุ่ม QC */
         div.stButton > button[key="btn_qc"] {{
             background-color: {color_qc_bg} !important;
+            color: {color_qc_txt} !important;
+            border: 2px solid {color_qc_border} !important;
+            font-weight: bold !important;
+            border-radius: 8px;
+            text-align: left;
+            margin-bottom: 10px;
+        }}
+        
+        /* สไตล์สำหรับปุ่ม FG */
+        div.stButton > button[key="btn_fg"] {{
+            background-color: {color_fg_bg} !important;
+            color: {color_fg_txt} !important;
+            border: 2px solid {color_fg_border} !important;
+            font-weight: bold !important;
+            border-radius: 8px;
+            text-align: left;
+            margin-bottom: 10px;
+        }}
+        </style>
+    """, unsafe_allow_html=True)
+
+    # --- 6. แสดงผลปุ่มเมนูส่วนที่ 1 (PD) เข้าสู่ Sidebar จริง ---
+    if st.sidebar.button(txt_pd_status, key="btn_pd", use_container_width=True):
+        st.session_state.current_page = "PD"
+        st.rerun()
             color: {color_qc_txt} !important;
             border: 2px solid {color_qc_border} !important;
             font-weight: bold !important;
