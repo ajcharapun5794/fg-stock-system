@@ -37,7 +37,8 @@ if 'current_db' not in st.session_state:
     st.session_state.current_db = load_data()
 
 df_current = st.session_state.current_db
- 
+df_current = st.session_state.current_db
+
 # --- 1. คำนวณจำนวนรายการค้างของแต่ละแผนก รวมถึงงานที่โดน QC Reject ---
 count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
 count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
@@ -81,28 +82,47 @@ else:
     color_fg_txt = "#2E7D32"
     color_fg_border = "#A5D6A7"
 
-# --- 5. แทรก CSS สไตล์เพื่อควบคุมสีปุ่มแบบไดนามิกตามเงื่อนไข ---
+# --- 5. แทรก CSS สไตล์เพื่อควบคุมสีปุ่มแบบไดนามิกตามเงื่อนไข (ชิดซ้ายสุดเพื่อตัดปัญหา Indent) ---
 st.sidebar.markdown(f"""
-    <style>
-    div[data-testid="stSidebarNav"] {{display: none;}}
-    
-    div.stButton > button[key="btn_pd"] {{
-        background-color: {color_pd_bg} !important;
-        color: {color_pd_txt} !important;
-        border: 2px solid {color_pd_border} !important;
-        font-weight: bold !important;
-        border-radius: 8px;
-        text-align: left;
-        margin-bottom: 10px;
-        width: 100%;
-    }}
-    
-    div.stButton > button[key="btn_qc"] {{
-        background-color: {color_qc_bg} !important;
-        color: {color_qc_txt} !important;
-        border: 2px solid {color_qc_border} !important;
-        font-weight: bold !important;
-        border-radius: 8px;
+<style>
+div[data-testid="stSidebarNav"] {{display: none;}}
+div.stButton > button[key="btn_pd"] {{
+background-color: {color_pd_bg} !important;
+color: {color_pd_txt} !important;
+border: 2px solid {color_pd_border} !important;
+font-weight: bold !important;
+border-radius: 8px;
+text-align: left;
+margin-bottom: 10px;
+width: 100%;
+}}
+div.stButton > button[key="btn_qc"] {{
+background-color: {color_qc_bg} !important;
+color: {color_qc_txt} !important;
+border: 2px solid {color_qc_border} !important;
+font-weight: bold !important;
+border-radius: 8px;
+text-align: left;
+margin-bottom: 10px;
+width: 100%;
+}}
+div.stButton > button[key="btn_fg"] {{
+background-color: {color_fg_bg} !important;
+color: {color_fg_txt} !important;
+border: 2px solid {color_fg_border} !important;
+font-weight: bold !important;
+border-radius: 8px;
+text-align: left;
+margin-bottom: 10px;
+width: 100%;
+}}
+</style>
+""", unsafe_allow_html=True)
+
+# --- 6. แสดงผลปุ่มเมนูส่วนที่ 1 (PD) เข้าสู่ Sidebar จริง ---
+if st.sidebar.button(txt_pd_status, key="btn_pd", use_container_width=True):
+    st.session_state.current_page = "PD"
+    st.rerun()
         text-align: left;
         margin-bottom: 10px;
         width: 100%;
