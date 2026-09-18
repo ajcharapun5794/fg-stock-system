@@ -38,71 +38,96 @@ if 'current_db' not in st.session_state:
 
 df_current = st.session_state.current_db
 
-# คำนวณจำนวนงานค้างเพื่ออัปเดตสถานะป้ายไฟแจ้งเตือนสีเขียว/สีแดง
-count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
-count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
+    # --- 1. คำนวณจำนวนรายการค้างของแต่ละแผนก รวมถึงงานที่โดน QC Reject ---
+    count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
+    count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
+    # เพิ่มตัวนับยอดงานผลิตที่ถูกตีกลับจาก QC
+    count_pd_reject = len(df_current[df_current['QC_Status'] == 'ถูกตีกลับจาก QC (Rejected)'])
 
-# ====================================================
-# SIDEBAR PORTAL: คืนสิทธิ์ระบบ 4 แถบกล่องไฟสี เขียว-แดง แจ้งเตือนเสถียร 100%
-# ====================================================
-st.sidebar.markdown("## เมนูระบบงานหลัก")
+    st.sidebar.markdown("### เมนูระบบงานหลัก / แผนกจัดส่ง-เช็คสเปก")
 
-# กำหนดตรรกะสีและข้อความฟ้องสถานะ (มีงาน = แดงอ่อน #FFEBEE / ไม่มีงาน = เขียวอ่อน #E8F5E9)
-txt_qc_status = f"🚨 มีงานค้าง {count_qc} รายการ" if count_qc > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
-color_qc_bg = "#FFEBEE" if count_qc > 0 else "#E8F5E9"
-color_qc_txt = "#B71C1C" if count_qc > 0 else "#1B5E20"
-color_qc_border = "#EF9A9A" if count_qc > 0 else "#A5D6A7"
+    # --- 2. กำหนดสีและข้อความของปุ่ม แผนกฝ่ายผลิต (PD) ---
+    # ถ้ามีงานถูก Reject (count_pd_reject > 0) ให้เปลี่ยนเป็นสีแดง (#FF4B4B)
+    if count_pd_reject > 0:
+        txt_pd_status = f"🔴 1. แผนกฝ่ายผลิต (PD) - มีงานต้องแก้ไข ({count_pd_reject} รายการ)"
+        color_pd_bg = "#FF4B4B"      # สีแดงเด่นชัด
+        color_pd_txt = "#FFFFFF"     # ตัวอักษรสีขาว
+        color_pd_border = "#D32F2F"  # กรอบสีแดงเข้ม
+    else:
+        # สถานะปกติสีเขียวตามเดิมของคุณ
+        txt_pd_status = "🟢 1. แผนกฝ่ายผลิต (PD)"
+        color_pd_bg = "#E8F5E9"
+        color_pd_txt = "#2E7D32"
+        color_pd_border = "#A5D6A7"
 
-txt_fg_status = f"🚨 มีงานค้าง {count_fg} รายการ" if count_fg > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
-color_fg_bg = "#FFEBEE" if count_fg > 0 else "#E8F5E9"
-color_fg_txt = "#B71C1C" if count_fg > 0 else "#1B5E20"
-color_fg_border = "#EF9A9A" if count_fg > 0 else "#A5D6A7"
+    # --- 3. กำหนดสีและข้อความของปุ่ม แผนกควบคุมคุณภาพ (QC) ---
+    if count_qc > 0:
+        txt_qc_status = f"🟠 2. แผนกควบคุมคุณภาพ (QC) - มีงานค้าง ({count_qc} รายการ)"
+        color_qc_bg = "#FFF3E0"
+        color_qc_txt = "#E65100"
+        color_qc_border = "#FFB74D"
+    else:
+        txt_qc_status = "🟢 2. แผนกควบคุมคุณภาพ (QC)"
+        color_qc_bg = "#E8F5E9"
+        color_qc_txt = "#2E7D32"
+        color_qc_border = "#A5D6A7"
 
-# แทรกคำสั่ง CSS เพื่อสร้างกล่องป้ายไฟสีอย่างเป็นทางการ มั่นคง ไม่รวนข้ามบราวเซอร์
-st.sidebar.markdown(f"""
-    <style>
-    .nav-badge {{ padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-top: 12px; margin-bottom: 4px; font-size: 13px; }}
-    .c-green {{ background-color: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }}
-    .c-blue {{ background-color: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }}
-    .c-qc-dynamic {{ background-color: {color_qc_bg}; color: {color_qc_txt}; border: 1px solid {color_qc_border}; }}
-    .c-fg_dynamic {{ background-color: {color_fg_bg}; color: {color_fg_txt}; border: 1px solid {color_fg_border}; }}
-    div[data-testid="stSidebarUserContent"] button {{ font-weight: bold !important; font-size: 14px !important; margin-bottom: 10px !important; }}
-    </style>
-""", unsafe_allow_html=True)
+    # --- 4. กำหนดสีและข้อความของปุ่ม แผนกคลังสินค้า (FG) ---
+    if count_fg > 0:
+        txt_fg_status = f"💗 3. แผนกคลังสินค้า (FG) - มีงานค้าง ({count_fg} รายการ)"
+        color_fg_bg = "#FCE4EC"
+        color_fg_txt = "#C2185B"
+        color_fg_border = "#F48FB1"
+    else:
+        txt_fg_status = "🟢 3. แผนกคลังสินค้า (FG)"
+        color_fg_bg = "#E8F5E9"
+        color_fg_txt = "#2E7D32"
+        color_fg_border = "#A5D6A7"
 
-# แถบที่ 1: ฝ่ายผลิต (PD)
-st.sidebar.markdown('<div class="nav-badge c-green">1. แผนกฝ่ายผลิต (PD) <br><small>🟢 สถานะปกติ</small></div>', unsafe_allow_html=True)
-nav_pd = st.sidebar.button("👉 เปิดหน้าจอ ฝ่ายผลิต", key="go_pd", use_container_width=True)
+    # --- 5. แทรก CSS สไตล์เพื่อควบคุมสีปุ่มแบบไดนามิกตามเงื่อนไข (Dynamic Styling) ---
+    st.sidebar.markdown(f"""
+        <style>
+        div[data-testid="stSidebarNav"] {{display: none;}}
+        
+        /* สไตล์สำหรับปุ่ม PD (รองรับทั้งเขียวปกติ และแดงเมื่อโดน Reject) */
+        div.stButton > button[key="btn_pd"] {{
+            background-color: {color_pd_bg} !important;
+            color: {color_pd_txt} !important;
+            border: 2px solid {color_pd_border} !important;
+            font-weight: bold !important;
+            border-radius: 8px;
+            text-align: left;
+            margin-bottom: 10px;
+        }}
+        
+        /* สไตล์สำหรับปุ่ม QC */
+        div.stButton > button[key="btn_qc"] {{
+            background-color: {color_qc_bg} !important;
+            color: {color_qc_txt} !important;
+            border: 2px solid {color_qc_border} !important;
+            font-weight: bold !important;
+            border-radius: 8px;
+            text-align: left;
+            margin-bottom: 10px;
+        }}
+        
+        /* สไตล์สำหรับปุ่ม FG */
+        div.stButton > button[key="btn_fg"] {{
+            background-color: {color_fg_bg} !important;
+            color: {color_fg_txt} !important;
+            border: 2px solid {color_fg_border} !important;
+            font-weight: bold !important;
+            border-radius: 8px;
+            text-align: left;
+            margin-bottom: 10px;
+        }}
+        </style>
+    """, unsafe_allow_html=True)
 
-# แถบที่ 2: ควบคุมคุณภาพ (QC)
-st.sidebar.markdown(f'<div class="nav-badge c-qc-dynamic">2. แผนกควบคุมคุณภาพ (QC) <br><small>{txt_qc_status}</small></div>', unsafe_allow_html=True)
-nav_qc = st.sidebar.button("👉 เปิดหน้าจอ ตรวจสเปก QC", key="go_qc", use_container_width=True)
-
-# แถบที่ 3: คลังสินค้าสำเร็จรูป (FG)
-st.sidebar.markdown(f'<div class="nav-badge c-fg_dynamic">3. แผนกคลังสินค้า (FG) <br><small>{txt_fg_status}</small></div>', unsafe_allow_html=True)
-nav_fg = st.sidebar.button("👉 เปิดหน้าจอ ตรวจนับของ FG", key="go_fg", use_container_width=True)
-
-# แถบที่ 4: แอดมินสรุปยอด ERP
-st.sidebar.markdown('<div class="nav-badge c-blue">4. ฝ่ายบริหารข้อมูลคลัง (ERP) <br><small>📊 สรุปยอดข้อมูลรวม</small></div>', unsafe_allow_html=True)
-nav_erp = st.sidebar.button("👉 เปิดรายงานสรุปยอดลง ERP", key="go_erp", use_container_width=True)
-
-# ระบบสลับเปลี่ยนหน้าจอ
-if 'current_page' not in st.session_state:
-    st.session_state.current_page = "PD"
-
-if nav_pd: st.session_state.current_page = "PD"; st.rerun()
-if nav_qc: st.session_state.current_page = "QC"; st.rerun()
-if nav_fg: st.session_state.current_page = "FG"; st.rerun()
-if nav_erp: st.session_state.current_page = "ERP"; st.rerun()
-
-# ====================================================
-# WORKFLOW PAGES INTERFACE (เนื้อหาฝั่งขวา)
-# ====================================================
-
-# ##############################################################################
-# # 1. แผนกฝ่ายผลิต (PD) - บันทึกงาน (คีย์ได้หลายโค้ด/ลบทีละอัน) + แก้ไขงาน Reject
-# ##############################################################################
-elif st.session_state.current_page == "PD":
+    # --- 6. แสดงผลปุ่มเมนูส่วนที่ 1 (PD) เข้าสู่ Sidebar จริง ---
+    if st.sidebar.button(txt_pd_status, key="btn_pd", use_container_width=True):
+        st.session_state.current_page = "PD"
+        st.rerun()
     df = st.session_state.current_db.copy()
     
     # เช็กว่ามีงานโดน QC ตีกลับมาหรือไม่
