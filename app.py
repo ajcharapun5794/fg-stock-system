@@ -211,7 +211,8 @@ elif st.session_state.current_page == "FG":
 
         options_map_fg = {}
         for _, r in fg_pending_list.iterrows():
-            display_text = f"📦 ตัวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดจัดส่ง: {r['PO_Qty']} | ชั้น (ตอน): {r['PO_Shift']} | QC ผู้ตรวจ: {r['QC_Name']}"
+            # แก้ไขจาก r['PO_Qty'] เป็น r['PD_Qty'] ให้ถูกต้องตามฐานข้อมูลของคุณ
+            display_text = f"📦 ตัวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดจัดส่ง: {r['PD_Qty']} | ชั้น (ตอน): {r['PO_Shift']} | QC ผู้ตรวจ: {r['QC_Name']}"
             options_map_fg[display_text] = r['JobID']
 
         selected_fg_jobs = st.multiselect("เลือกงานจากรหัสสินค้าเพื่อตรวจสอบและรับเข้าพร้อมกัน:", list(options_map_fg.keys()))
@@ -235,7 +236,6 @@ elif st.session_state.current_page == "FG":
                 save_data(df)
                 st.success("บันทึกข้อมูลและรับสินค้าเข้าคลังสำเร็จเรียบร้อยแล้ว!")
                 st.rerun()
-
 # ----------------------------------------------------
 # 4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin) - ดูยอดรับจริงทั้งหมด และนำลง ERP
 # ----------------------------------------------------
