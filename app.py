@@ -92,72 +92,21 @@ if nav_erp: st.session_state.current_page = "ERP"; st.rerun()
 # WORKFLOW PAGES INTERFACE (เนื้อหาฝั่งขวา)
 # ====================================================
 
-# ----------------------------------------------------
-# 1. แผนกฝ่ายผลิต (PD) - บันทึก ชื่อ, รอบเวลา, รหัสสินค้า, จำนวน (สะสมหลายโค้ดได้)
-# ----------------------------------------------------
-if st.session_state.current_page == "PD":
-    st.subheader("⚙️ ส่วนงานฝ่ายผลิต (Production - PD): บันทึกส่งมอบงานสินค้า")
-    pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตผู้บันทึกข้อมูล:")
-    pd_shift = st.text_input("ระบุรอบเวลาการส่งงาน / กะการทำงาน (เช่น รอบ 10:00 น. หรือ กะเช้า):")
-    st.markdown("#### ตารางรายการรหัสสินค้าที่ต้องการนำส่ง")
-    
-    if 'temp_items' not in st.session_state:
-        st.session_state.temp_items = []
+# ==============================================================================
+# เมนูระบบงานหลัก (ส่วนที่ 1 ถึง 4)
+# ==============================================================================
 
-    with st.container(border=True):
-        input_sku = st.text_input("ระบุรหัสสินค้า หรือใช้ปืนสแกนบาร์โค้ดยิง (SKU):", key="input_sku")
-        input_qty = st.number_input("จำนวนสินค้าที่นำส่งมอบจริง (ชิ้น):", min_value=1, step=1, key="input_qty")
-        st.write("") 
-        if st.button("➕ เพิ่มเข้าตารางรายการ", use_container_width=True):
-            if input_sku.strip() != "":
-                st.session_state.temp_items.append({'SKU': input_sku.strip(), 'Qty': input_qty})
-                st.rerun()
-            else:
-                st.error("กรุณาระบุรหัสสินค้า")
+# ------------------------------------------------------------------------------
+# 1. แผนกฝ่ายผลิต (PD)
+# ------------------------------------------------------------------------------
+if st.session_state.current_page == "pd":
+    st.subheader("ส่วนงานแผนกฝ่ายผลิต (Production Department - PD)")
+    # ... (ใส่โค้ดแสดงผลหรือฟอร์มของฝั่ง PD เดิมของคุณตรงนี้ได้เลยครับ) ...
 
-    if st.session_state.temp_items:
-        df_temp = pd.DataFrame(st.session_state.temp_items)
-        df_temp_idx = df_temp.copy()
-        df_temp_idx.insert(0, 'เลือกเพื่อลบ', False)
-        
-        st.write("**รายการที่เตรียมส่งมอบรอบนี้:**")
-        edited_temp = st.data_editor(df_temp_idx, hide_index=True, use_container_width=True, disabled=['SKU', 'Qty'])
-        
-        col_pd_del, col_pd_send = st.columns(2)
-        with col_pd_del:
-            if st.button("🗑️ ล้างรายการส่งมอบที่เลือก", use_container_width=True):
-                keep_indices = edited_temp[edited_temp['เลือกเพื่อลบ'] == False].index.tolist()
-                st.session_state.temp_items = [st.session_state.temp_items[i] for i in keep_indices]
-                st.success("ลบรายการที่เลือกเรียบร้อย")
-                st.rerun()
-                
-        with col_pd_send:
-            if st.button("🚀 ยืนยันการนำส่งข้อมูลทั้งหมดให้ระบบ", type="primary", use_container_width=True):
-                if pd_name.strip() == "" or pd_shift.strip() == "":
-                    st.error("กรุณาระบุชื่อพนักงานและรอบเวลาการส่งงานให้ครบถ้วน")
-                else:
-                    df = st.session_state.current_db
-                    timestamp_now = datetime.now().strftime("%Y-%m-%d %H:%M")
-                    
-                    for item in st.session_state.temp_items:
-                        new_id = len(df) + 1
-                        job_id = f"JOB-{new_id:04d}"
-                        new_data = {
-                            'JobID': job_id, 'Timestamp': timestamp_now, 'PD_Shift': pd_shift,
-                            'PD_Name': pd_name, 'SKU': item['SKU'], 'PD_Qty': item['Qty'],
-                            'QC_Status': 'รอ QC ตรวจสอบ (Pending QC)', 'QC_Name': '-',
-                            'FG_Qty': 0, 'FG_Status': 'รอคลังรับเข้า (Pending FG)', 'FG_Name': '-'
-                        }
-                        df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-                    
-                    save_data(df)
-                    st.session_state.temp_items = []
-                    st.success("บันทึกข้อมูลส่งมอบเข้าสู่คิวงานเรียบร้อยแล้ว!")
-                    st.rerun()
-    else:
-        st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
-# ----------------------------------------------------
+# ------------------------------------------------------------------------------
+# 2. แผนกควบคุมคุณภาพ (QC)
+# ------------------------------------------------------------------------------
 elif st.session_state.current_page == "qc":
     st.subheader("ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
     qc_pending_list = df[df['QC_Status'] == 'Pending QC']
@@ -173,158 +122,85 @@ elif st.session_state.current_page == "qc":
             display_text = f"ใบงาน: {r['job_id']} | รหัสสินค้า: {r['product_id']} | จำนวน: {r['qty']} ชิ้น (รอบ: {r['round_time']})"
             options_map_qc[display_text] = (r['job_id'], r['refrun_id'])
 
-        selected_qc_jobs = st.multiselect("คลิกเลือกตัวงานสินค้าที่ตรวจสอบผ่านเกณฑ์พร้อมกันหลายรายการ:", list(options_map_qc.keys()))
+        selected_qc_jobs = st.multiselect(
+            "คลิกเลือกตัวงานสินค้าที่ตรวจสอบผ่านเกณฑ์พร้อมกันหลายรายการ:", 
+            list(options_map_qc.keys())
+        )
 
         st.write("---")
         
-        # 1. เช็คเงื่อนไขล่วงหน้าว่ากรอกข้อมูลครบหรือยัง (ชื่อไม่ว่าง และเลือกรายการแล้ว)
+        # เช็คเงื่อนไขล่วงหน้าก่อนเปิดให้กดปุ่ม (ต้องพิมพ์ชื่อ และ เลือกรายการ)
         is_button_disabled = not (qc_name.strip() and selected_qc_jobs)
 
-        # 2. ปรับปุ่มใช้ disabled ควบคุม เพื่อไม่ให้ค่าหลุดเวลา Streamlit Rerun
         if st.button(
             "อนุมัติมาตรฐานผ่านเกณฑ์ตามรายการที่เลือก (Approve ยกแผง)", 
             type="primary", 
             use_container_width=True,
             disabled=is_button_disabled
         ):
+            # ดึงคำสั่งอัปเดตข้อมูลขึ้นมาทำงานหลังจากผ่านเงื่อนไขแล้ว
             for option in selected_qc_jobs:
                 job_id, refrun_id = options_map_qc[option]
-    st.subheader("🔍 ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
-    df = st.session_state.current_db
-    qc_pending_list = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)']
-    
-  if qc_pending_list.empty:
-        st.info("ไม่มีรายการสินค้าค้างตรวจสเปก")
-    else:
-        st.write("### รายการสินค้าค้างตรวจสเปก")
-        qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key="fg_global_name")
-
-        options_map_qc = {}
-        for r in qc_pending_list.to_dict('records'):
-            display_text = f"ใบงาน: {r['job_id']} | รหัสสินค้า: {r['product_id']} | จำนวน: {r['qty']} ชิ้น (รอบ: {r['round_time']})"
-            options_map_qc[display_text] = (r['job_id'], r['refrun_id'])
-
-        selected_qc_jobs = st.multiselect("คลิกเลือกตัวงานสินค้าที่ตรวจสอบผ่านเกณฑ์พร้อมกันหลายรายการ:", list(options_map_qc.keys()))
-    else:
-        st.write("### 📋 รายการสินค้าค้างตรวจสเปก")
-      for r in qc_pending_list.to_dict('records'):
-            display_text = f"ใบงาน: {r['job_0001']} | รหัสสินค้า: {r['product_id']} | จำนวน: {r['qty']} ชิ้น (รอบ: {r['round_time']})"
-            options_map_qc[display_text] = (r['job_id'], r['refrun_id'])
-        
-        options_map_qc = {}
-        for _, r in qc_pending_list.iterrows():
-            display_text = f"คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | จำนวน: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']})"
-  options_map_qc[display_text] = (r['job_id'], r['refrun_id'])
-            
-        selected_qc_jobs = st.multiselect("คลิกเลือกคิวงานสินค้าที่ตรวจสอบผ่านเกณฑ์พร้อมกันหลายรายการ:", list(options_map_qc.keys()))
-        
-        st.write("---")
-        col_qc_act1, col_qc_act2 = st.columns(2)
-      # 1. เช็คเงื่อนไขล่วงหน้าก่อนว่ากรอกข้อมูลครบหรือยัง
-# (เช็คว่า qc_name ไม่ว่าง และ selected_qc_jobs ไม่เป็นค่าว่าง)
-is_button_disabled = not (qc_name.strip() and selected_qc_jobs)
-
-# 2. ปรับตัวปุ่มให้ลบการเช็ค if ซ้อนด้านในออก แล้วใช้ disabled ควบคุมแทน
-if st.button(
-    "อนุมัติมาตรฐานผ่านเกณฑ์ตามรายการที่เลือก (Approve ยกแผง)", 
-    type="primary", 
-    use_container_width=True,
-    disabled=is_button_disabled  # ปุ่มจะกดได้ก็ต่อเมื่อกรอกชื่อและเลือกรายการแล้วเท่านั้น
-):
-    # เมื่อกดปุ่มแล้ว ให้ระบบทำงานบันทึกข้อมูลและส่งต่อไป FG ได้ทันที
-    for option in selected_qc_jobs:
-      job_id, refrun_id = options_map_qc[option]
-        # ... (โค้ดส่วนบันทึกข้อมูลเดิมของคุณรันต่อตรงนี้ได้เลย) ...
-# 3. แผนกคลังสินค้าสำเร็จรูป (FG) - เลือกหลายโค้ด อนุมัติรับงานยกแผงปุ่มเดียวส่งต่อด่าน 4 ได้จริง 100%
-# ----------------------------------------------------
-elif st.session_state.current_page == "FG":
-    st.subheader("📥 ส่วนงานฝ่ายคลังสินค้าสำเร็จรูป (Finished Goods - FG): ตรวจนับสต็อกรับจริง")
-    df = st.session_state.current_db
-    fg_pending_list = df[df['FG_Status'] == 'รอคลังรับเข้า (Pending FG)']
-    
-    if fg_pending_list.empty:
-        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลังสินค้าสำเร็จรูปในระบบขณะนี้")
-    else:
-        st.write("### 📦 รายการสินค้าค้างนับรับเข้าสต็อก")
-        fg_name = st.text_input("ชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริง:", key="fg_global_name")
-        
-        options_map_fg = {}
-        for _, r in fg_pending_list.iterrows():
-            display_text = f"📦 คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | ยอดแจ้งส่ง: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']}) | QC ผู้ตรวจ: {r['QC_Name']}"
-            options_map_fg[display_text] = r['JobID']
-            
-        selected_fg_jobs = st.multiselect("คลิกเลือกคิวงานสินค้าที่ต้องการรับเข้าสต็อกคลังพร้อมกันหลายรายการ:", list(options_map_fg.keys()))
-        
-        st.write("---")
-        # ปุ่มหลัก: บันทึกรับของเข้าคลังแบบยกแผงปุ่มเดียวผ่านฉลุย ยอดวิ่งไปหน้าแอดมินส่วนที่ 4 ทันที
-        if st.button("💾 ยืนยันบันทึกรับสินค้าเข้าสต็อกทุกรายการที่เลือก (Approve ยกแผง)", type="primary", use_container_width=True):
-            if fg_name.strip() == "":
-                st.error("กรุณาระบุชื่อพนักงานคลังสินค้าผู้ตรวจนับของจริงก่อนกดยืนยัน")
-            elif not selected_fg_jobs:
-                st.error("กรุณาคลิกเลือกรายการคิวงานสินค้าที่ต้องการรับเข้าสต็อกอย่างน้อย 1 รายการ")
-            else:
-                for option in selected_fg_jobs:
-                    job_id_extracted = options_map_fg[option]
-                    idx = df[df['JobID'] == job_id_extracted].index
-                    # ใช้คำสั่งระบุพิกัดตรงตัว .loc เพื่อให้ระบบคัดลอกค่าจำนวนเซฟทับและผลักข้อมูลไปส่วนที่ 4 ได้ทันที ไม่พังแถบชมพู
-                    df.loc[idx, 'FG_Qty'] = df.loc[idx, 'PD_Qty'].values
-                    df.loc[idx, 'FG_Name'] = fg_name
-                    df.loc[idx, 'FG_Status'] = 'รับเข้าคลังสำเร็จ (Completed)'
-                save_data(df)
-                st.success(f"คลังสินค้า FG บันทึกรับเข้าสต็อกสำเร็จ {len(selected_fg_jobs)} รายการ! ยอดถูกจัดส่งไปหน้าตารางสรุปผลแอดมิน ERP แล้ว")
-                st.rerun()
                 
-        if st.button("🗑️ ลบคิวงานคลัง FG ที่เลือกออกจากระบบ", use_container_width=True):
-            if not selected_fg_jobs:
-                st.error("กรุณาเลือกรายการคิวงานที่ต้องการลบก่อนกดปุ่ม")
-            else:
-                for option in selected_fg_jobs:
-                    job_id_extracted = options_map_fg[option]
-                    df = df[df['JobID'] != job_id_extracted]
-                save_data(df)
-                st.success("ลบรายการคิวงานที่เลือกออกจากระบบสำเร็จแล้ว!")
-                st.rerun()
-
-# ----------------------------------------------------
-# 4. ฝ่ายบริหารข้อมูลคลัง (ERP Admin) - ยอดรับจริงหน้างาน 100% พร้อมปุ่มโหลดไฟล์ลง ERP
-# ----------------------------------------------------
-elif st.session_state.current_page == "ERP":
-    st.header("หน้าจอส่วนงาน: ฝ่ายบริหารข้อมูลคลังสินค้า (ERP Administrator)")
-    st.subheader("รายงานสรุปตรวจสอบยอดรับจริงหน้างาน 100% เพื่อนำข้อมูลคีย์ลงระบบ ERP")
-    
-    df = st.session_state.current_db
-    df_erp_display = df.copy()
-    df_erp_display.insert(0, 'เลือกเพื่อลบ', False)
-    
-    edited_erp_df = st.data_editor(
-        df_erp_display[['เลือกเพื่อลบ', 'JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty', 'QC_Status', 'QC_Name', 'FG_Qty', 'FG_Status', 'FG_Name']],
-        hide_index=True,
-        use_container_width=True,
-        disabled=['JobID', 'Timestamp', 'PD_Shift', 'PD_Name', 'SKU', 'PD_Qty', 'QC_Status', 'QC_Name', 'FG_Qty', 'FG_Status', 'FG_Name']
-    )
-    
-    st.write("---")
-    col_admin1, col_admin2 = st.columns(2)
-    with col_admin1:
-        completed_jobs = df[df['FG_Status'] == 'รับเข้าคลังสำเร็จ (Completed)']
-        if not completed_jobs.empty:
-            csv = completed_jobs.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(
-                label="📥 ดาวน์โหลดไฟล์รายงานยอดรับจริง (.CSV) สำหรับนำข้อมูลอัปโหลดเข้า ERP ของบริษัททันที",
-                data=csv,
-                file_name="Finished_Goods_Verified_Report.csv",
-                mime='text/csv',
-                use_container_width=True
-            )
+                # ทำการอัปเดตสถานะใน DataFrame จาก 'Pending QC' เป็น 'Pending FG'
+                df.loc[(df['job_id'] == job_id) & (df['refrun_id'] == refrun_id), 'QC_Status'] = 'Approved'
+                df.loc[(df['job_id'] == job_id) & (df['refrun_id'] == refrun_id), 'FG_Status'] = 'Pending FG'
+                df.loc[(df['job_id'] == job_id) & (df['refrun_id'] == refrun_id), 'QC_Inspector'] = qc_name.strip()
             
-    with col_admin2:
-        if st.button("🚨 ลบข้อมูลประวัติที่เลือกออกจากฐานข้อมูลถาวร", use_container_width=True):
-            selected_del_jobs = edited_erp_df[edited_erp_df['เลือกเพื่อลบ'] == True]['JobID'].tolist()
-            if not selected_del_jobs:
-                st.error("กรุณาติ๊กถูกหน้าคิวงานที่ต้องการลบในตารางสรุปผลก่อนกดปุ่ม")
-            else:
-                for job in selected_del_jobs:
-                    df = df[df['JobID'] != job]
-                save_data(df)
-                st.success(f"ลบข้อมูลคิวงานออกจากระบบถาวรเรียบร้อยแล้วจำนวน {len(selected_del_jobs)} รายการ!")
-                st.rerun()
+            save_data(df)  # บันทึกข้อมูลลงฐานข้อมูล/ไฟล์
+            st.success("อนุมัติรายการสินค้าและส่งข้อมูลต่อไปยังแผนกคลังสินค้า (FG) เรียบร้อยแล้ว!")
+            st.rerun()
+
+
+# ------------------------------------------------------------------------------
+# 3. แผนกคลังสินค้า (FG)
+# ------------------------------------------------------------------------------
+elif st.session_state.current_page == "fg":
+    st.subheader("ส่วนงานคลังสินค้าสำเร็จรูป (Finished Goods - FG): รับสินค้าเข้าคลัง")
+    fg_pending_list = df[df['FG_Status'] == 'Pending FG']
+
+    if fg_pending_list.empty:
+        st.info("ไม่มีรายการสินค้าค้างรับเข้าคลัง")
+    else:
+        st.write("### รายการสินค้าค้างรับเข้าคลัง")
+        fg_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานคลังสินค้า (FG):", key="fg_user_name")
+
+        options_map_fg = {}
+        for r in fg_pending_list.to_dict('records'):
+            display_text = f"ใบงาน: {r['job_id']} | รหัสสินค้า: {r['product_id']} | จำนวน: {r['qty']} ชิ้น (รอบ: {r['round_time']})"
+            options_map_fg[display_text] = (r['job_id'], r['refrun_id'])
+
+        selected_fg_jobs = st.multiselect(
+            "คลิกเลือกตัวงานสินค้าที่ต้องการรับเข้าคลังพร้อมกันหลายรายการ:", 
+            list(options_map_fg.keys())
+        )
+
+        st.write("---")
+        
+        # เช็คเงื่อนไขก่อนเปิดปุ่มรับเข้าคลัง (ต้องพิมพ์ชื่อ และ เลือกรายการ)
+        is_fg_button_disabled = not (fg_name.strip() and selected_fg_jobs)
+
+        if st.button(
+            "ยืนยันการรับสินค้าเข้าคลังสำเร็จรูป", 
+            type="primary", 
+            use_container_width=True,
+            disabled=is_fg_button_disabled
+        ):
+            for option in selected_fg_jobs:
+                job_id, refrun_id = options_map_fg[option]
+                
+                # ทำการอัปเดตสถานะจาก 'Pending FG' เป็น 'In Stock' เพื่อเตรียมส่งต่อให้ ERP
+                df.loc[(df['job_id'] == job_id) & (df['refrun_id'] == refrun_id), 'FG_Status'] = 'In Stock'
+                df.loc[(df['job_id'] == job_id) & (df['refrun_id'] == refrun_id), 'ERP_Status'] = 'Pending ERP'
+                df.loc[(df['job_id'] == job_id) & (df['refrun_id'] == refrun_id), 'FG_Receiver'] = fg_name.strip()
+            
+            save_data(df)
+            st.success("รับสินค้าเข้าคลังสำเร็จรูป และเตรียมส่งข้อมูลเข้าระบบ ERP เรียบร้อยแล้ว!")
+            st.rerun()
+
+
+# ------------------------------------------------------------------------------
+# 4. ฝ่ายบริการข้อมูลคลัง (ERP)
+# ------------------------------------------------------------------------------
+elif st.session_state.current_page == "erp":
+    st.subheader("ส่วนงานบริการข้อมูลคลังสินค้า (ERP Integration)")
