@@ -174,7 +174,7 @@ elif st.session_state.current_page == "QC":
         options_map_qc = {}
         for _, r in qc_pending_list.iterrows():
             display_text = f"คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | จำนวน: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']})"
-            options_map_qc[display_text] = r['JobID']
+  options_map_qc[display_text] = (r['job_id'], r['refrun_id'])
             
         selected_qc_jobs = st.multiselect("คลิกเลือกคิวงานสินค้าที่ตรวจสอบผ่านเกณฑ์พร้อมกันหลายรายการ:", list(options_map_qc.keys()))
         
