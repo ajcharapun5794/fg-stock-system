@@ -87,7 +87,6 @@ if 'current_page' not in st.session_state:
     st.session_state.current_page = "PD"
 
 if nav_pd: st.session_state.current_page = "PD"; st.rerun()
-if nav_qc: st.session_state.current_page = "QC"; st.rerun()
 if nav_fg: st.session_state.current_page = "FG"; st.rerun()
 if nav_erp: st.session_state.current_page = "ERP"; st.rerun()
 
