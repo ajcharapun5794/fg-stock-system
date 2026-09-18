@@ -39,100 +39,36 @@ if 'current_db' not in st.session_state:
 df_current = st.session_state.current_db
 df_current = st.session_state.current_db
 
-# --- 1. คำนวณจำนวนรายการค้างของแต่ละแผนก รวมถึงงานที่โดน QC Reject ---
+# --- 1. คำนวณจำนวนรายการค้างและงานที่โดน QC Reject ---
 count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
 count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
 count_pd_reject = len(df_current[df_current['QC_Status'] == 'ถูกตีกลับจาก QC (Rejected)'])
 
-st.sidebar.markdown("### เมนูระบบงานหลัก / แผนกจัดส่ง-เช็คสเปก")
+st.sidebar.markdown("### เมนูระบบงานหลัก")
 
-# --- 2. กำหนดสีและข้อความของปุ่ม แผนกฝ่ายผลิต (PD) ---
+# --- 2. ระบบเปลี่ยนชื่อปุ่มเพื่อแจ้งเตือนเมื่อมีงานโดน Reject ---
 if count_pd_reject > 0:
-    txt_pd_status = f"🔴 1. แผนกฝ่ายผลิต (PD) - มีงานต้องแก้ไข ({count_pd_reject} รายการ)"
-    color_pd_bg = "#FF4B4B"      
-    color_pd_txt = "#FFFFFF"     
-    color_pd_border = "#D32F2F"  
+    # จะเปลี่ยนเป็นปุ่มเปิดไฟไซเรนสีแดงแจ้งเตือนทันที
+    txt_pd_status = f"🚨 1. แผนกฝ่ายผลิต (PD) - มีงานต้องแก้ไข ({count_pd_reject} รายการ)"
 else:
     txt_pd_status = "🟢 1. แผนกฝ่ายผลิต (PD)"
-    color_pd_bg = "#E8F5E9"
-    color_pd_txt = "#2E7D32"
-    color_pd_border = "#A5D6A7"
 
-# --- 3. กำหนดสีและข้อความของปุ่ม แผนกควบคุมคุณภาพ (QC) ---
-if count_qc > 0:
-    txt_qc_status = f"🟠 2. แผนกควบคุมคุณภาพ (QC) - มีงานค้าง ({count_qc} รายการ)"
-    color_qc_bg = "#FFF3E0"
-    color_qc_txt = "#E65100"
-    color_qc_border = "#FFB74D"
-else:
-    txt_qc_status = "🟢 2. แผนกควบคุมคุณภาพ (QC)"
-    color_qc_bg = "#E8F5E9"
-    color_qc_txt = "#2E7D32"
-    color_qc_border = "#A5D6A7"
-
-# --- 4. กำหนดสีและข้อความของปุ่ม แผนกคลังสินค้า (FG) ---
-if count_fg > 0:
-    txt_fg_status = f"💗 3. แผนกคลังสินค้า (FG) - มีงานค้าง ({count_fg} รายการ)"
-    color_fg_bg = "#FCE4EC"
-    color_fg_txt = "#C2185B"
-    color_fg_border = "#F48FB1"
-else:
-    txt_fg_status = "🟢 3. แผนกคลังสินค้า (FG)"
-    color_fg_bg = "#E8F5E9"
-    color_fg_txt = "#2E7D32"
-    color_fg_border = "#A5D6A7"
-
-# --- 5. แทรก CSS สไตล์เพื่อควบคุมสีปุ่มแบบไดนามิกตามเงื่อนไข (เขียนแบบชิดซ้ายสุดทั้งหมด) ---
-st.sidebar.markdown(f"""
-<style>
-div[data-testid="stSidebarNav"] {{display: none;}}
-div.stButton > button[key="btn_pd"] {{
-background-color: {color_pd_bg} !important;
-color: {color_pd_txt} !important;
-border: 2px solid {color_pd_border} !important;
-font-weight: bold !important;
-border-radius: 8px;
-margin-bottom: 10px;
-width: 100%;
-}}
-div.stButton > button[key="btn_qc"] {{
-background-color: {color_qc_bg} !important;
-color: {color_qc_txt} !important;
-border: 2px solid {color_qc_border} !important;
-font-weight: bold !important;
-border-radius: 8px;
-margin-bottom: 10px;
-width: 100%;
-}}
-div.stButton > button[key="btn_fg"] {{
-background-color: {color_fg_bg} !important;
-color: {color_fg_txt} !important;
-border: 2px solid {color_fg_border} !important;
-font-weight: bold !important;
-border-radius: 8px;
-margin-bottom: 10px;
-width: 100%;
-}}
-</style>
-""", unsafe_allow_html=True)
-
-# --- 6. แสดงผลปุ่มเมนูเข้าสู่ Sidebar จริง ---
-if st.sidebar.button(txt_pd_status, key="btn_pd", use_container_width=True):
+# --- 3. แสดงผลปุ่มเมนูเข้าสู่ Sidebar แบบมาตรฐาน (เสถียร 100%) ---
+if st.sidebar.button(txt_pd_status, use_container_width=True):
     st.session_state.current_page = "PD"
     st.rerun()
 
-if st.sidebar.button(txt_qc_status, key="btn_qc", use_container_width=True):
+if st.sidebar.button(f"🟢 2. แผนกควบคุมคุณภาพ (QC) ({count_qc} รายการ)", use_container_width=True):
     st.session_state.current_page = "QC"
     st.rerun()
 
-if st.sidebar.button(txt_fg_status, key="btn_fg", use_container_width=True):
+if st.sidebar.button(f"🟢 3. แผนกคลังสินค้า (FG) ({count_fg} รายการ)", use_container_width=True):
     st.session_state.current_page = "FG"
     st.rerun()
 
 if st.sidebar.button("📊 4. ฝ่ายบริหารข้อมูลคลัง (ERP)", use_container_width=True):
     st.session_state.current_page = "ERP"
     st.rerun()
-        border-radius: 8px;
         text-align: left;
         margin-bottom: 10px;
         width: 100%;
