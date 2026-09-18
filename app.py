@@ -37,72 +37,94 @@ if 'current_db' not in st.session_state:
     st.session_state.current_db = load_data()
 
 df_current = st.session_state.current_db
- df_current = st.session_state.current_db
+ 
+# --- 1. คำนวณจำนวนรายการค้างของแต่ละแผนก รวมถึงงานที่โดน QC Reject ---
+count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
+count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
+count_pd_reject = len(df_current[df_current['QC_Status'] == 'ถูกตีกลับจาก QC (Rejected)'])
 
-    # --- 1. คำนวณจำนวนรายการค้างของแต่ละแผนก รวมถึงงานที่โดน QC Reject ---
-    count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
-    count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
-    # เพิ่มตัวนับยอดงานผลิตที่ถูกตีกลับจาก QC
-    count_pd_reject = len(df_current[df_current['QC_Status'] == 'ถูกตีกลับจาก QC (Rejected)'])
+st.sidebar.markdown("### เมนูระบบงานหลัก / แผนกจัดส่ง-เช็คสเปก")
 
-    st.sidebar.markdown("### เมนูระบบงานหลัก / แผนกจัดส่ง-เช็คสเปก")
+# --- 2. กำหนดสีและข้อความของปุ่ม แผนกฝ่ายผลิต (PD) ---
+if count_pd_reject > 0:
+    txt_pd_status = f"🔴 1. แผนกฝ่ายผลิต (PD) - มีงานต้องแก้ไข ({count_pd_reject} รายการ)"
+    color_pd_bg = "#FF4B4B"      
+    color_pd_txt = "#FFFFFF"     
+    color_pd_border = "#D32F2F"  
+else:
+    txt_pd_status = "🟢 1. แผนกฝ่ายผลิต (PD)"
+    color_pd_bg = "#E8F5E9"
+    color_pd_txt = "#2E7D32"
+    color_pd_border = "#A5D6A7"
 
-    # --- 2. กำหนดสีและข้อความของปุ่ม แผนกฝ่ายผลิต (PD) ---
-    # ถ้ามีงานถูก Reject (count_pd_reject > 0) ให้เปลี่ยนเป็นสีแดง (#FF4B4B)
-    if count_pd_reject > 0:
-        txt_pd_status = f"🔴 1. แผนกฝ่ายผลิต (PD) - มีงานต้องแก้ไข ({count_pd_reject} รายการ)"
-        color_pd_bg = "#FF4B4B"      # สีแดงเด่นชัด
-        color_pd_txt = "#FFFFFF"     # ตัวอักษรสีขาว
-        color_pd_border = "#D32F2F"  # กรอบสีแดงเข้ม
-    else:
-        # สถานะปกติสีเขียวตามเดิมของคุณ
-        txt_pd_status = "🟢 1. แผนกฝ่ายผลิต (PD)"
-        color_pd_bg = "#E8F5E9"
-        color_pd_txt = "#2E7D32"
-        color_pd_border = "#A5D6A7"
+# --- 3. กำหนดสีและข้อความของปุ่ม แผนกควบคุมคุณภาพ (QC) ---
+if count_qc > 0:
+    txt_qc_status = f"🟠 2. แผนกควบคุมคุณภาพ (QC) - มีงานค้าง ({count_qc} รายการ)"
+    color_qc_bg = "#FFF3E0"
+    color_qc_txt = "#E65100"
+    color_qc_border = "#FFB74D"
+else:
+    txt_qc_status = "🟢 2. แผนกควบคุมคุณภาพ (QC)"
+    color_qc_bg = "#E8F5E9"
+    color_qc_txt = "#2E7D32"
+    color_qc_border = "#A5D6A7"
 
-    # --- 3. กำหนดสีและข้อความของปุ่ม แผนกควบคุมคุณภาพ (QC) ---
-    if count_qc > 0:
-        txt_qc_status = f"🟠 2. แผนกควบคุมคุณภาพ (QC) - มีงานค้าง ({count_qc} รายการ)"
-        color_qc_bg = "#FFF3E0"
-        color_qc_txt = "#E65100"
-        color_qc_border = "#FFB74D"
-    else:
-        txt_qc_status = "🟢 2. แผนกควบคุมคุณภาพ (QC)"
-        color_qc_bg = "#E8F5E9"
-        color_qc_txt = "#2E7D32"
-        color_qc_border = "#A5D6A7"
+# --- 4. กำหนดสีและข้อความของปุ่ม แผนกคลังสินค้า (FG) ---
+if count_fg > 0:
+    txt_fg_status = f"💗 3. แผนกคลังสินค้า (FG) - มีงานค้าง ({count_fg} รายการ)"
+    color_fg_bg = "#FCE4EC"
+    color_fg_txt = "#C2185B"
+    color_fg_border = "#F48FB1"
+else:
+    txt_fg_status = "🟢 3. แผนกคลังสินค้า (FG)"
+    color_fg_bg = "#E8F5E9"
+    color_fg_txt = "#2E7D32"
+    color_fg_border = "#A5D6A7"
 
-    # --- 4. กำหนดสีและข้อความของปุ่ม แผนกคลังสินค้า (FG) ---
-    if count_fg > 0:
-        txt_fg_status = f"💗 3. แผนกคลังสินค้า (FG) - มีงานค้าง ({count_fg} รายการ)"
-        color_fg_bg = "#FCE4EC"
-        color_fg_txt = "#C2185B"
-        color_fg_border = "#F48FB1"
-    else:
-        txt_fg_status = "🟢 3. แผนกคลังสินค้า (FG)"
-        color_fg_bg = "#E8F5E9"
-        color_fg_txt = "#2E7D32"
-        color_fg_border = "#A5D6A7"
+# --- 5. แทรก CSS สไตล์เพื่อควบคุมสีปุ่มแบบไดนามิกตามเงื่อนไข ---
+st.sidebar.markdown(f"""
+    <style>
+    div[data-testid="stSidebarNav"] {{display: none;}}
+    
+    div.stButton > button[key="btn_pd"] {{
+        background-color: {color_pd_bg} !important;
+        color: {color_pd_txt} !important;
+        border: 2px solid {color_pd_border} !important;
+        font-weight: bold !important;
+        border-radius: 8px;
+        text-align: left;
+        margin-bottom: 10px;
+        width: 100%;
+    }}
+    
+    div.stButton > button[key="btn_qc"] {{
+        background-color: {color_qc_bg} !important;
+        color: {color_qc_txt} !important;
+        border: 2px solid {color_qc_border} !important;
+        font-weight: bold !important;
+        border-radius: 8px;
+        text-align: left;
+        margin-bottom: 10px;
+        width: 100%;
+    }}
+    
+    div.stButton > button[key="btn_fg"] {{
+        background-color: {color_fg_bg} !important;
+        color: {color_fg_txt} !important;
+        border: 2px solid {color_fg_border} !important;
+        font-weight: bold !important;
+        border-radius: 8px;
+        text-align: left;
+        margin-bottom: 10px;
+        width: 100%;
+    }}
+    </style>
+""", unsafe_allow_html=True)
 
-    # --- 5. แทรก CSS สไตล์เพื่อควบคุมสีปุ่มแบบไดนามิกตามเงื่อนไข (Dynamic Styling) ---
-    st.sidebar.markdown(f"""
-        <style>
-        div[data-testid="stSidebarNav"] {{display: none;}}
-        
-        /* สไตล์สำหรับปุ่ม PD (รองรับทั้งเขียวปกติ และแดงเมื่อโดน Reject) */
-        div.stButton > button[key="btn_pd"] {{
-            background-color: {color_pd_bg} !important;
-            color: {color_pd_txt} !important;
-            border: 2px solid {color_pd_border} !important;
-            font-weight: bold !important;
-            border-radius: 8px;
-            text-align: left;
-            margin-bottom: 10px;
-        }}
-        
-        /* สไตล์สำหรับปุ่ม QC */
-        div.stButton > button[key="btn_qc"] {{
+# --- 6. แสดงผลปุ่มเมนูส่วนที่ 1 (PD) เข้าสู่ Sidebar จริง ---
+if st.sidebar.button(txt_pd_status, key="btn_pd", use_container_width=True):
+    st.session_state.current_page = "PD"
+    st.rerun()
             background-color: {color_qc_bg} !important;
             color: {color_qc_txt} !important;
             border: 2px solid {color_qc_border} !important;
