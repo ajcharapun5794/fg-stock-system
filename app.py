@@ -250,7 +250,7 @@ elif st.session_state.current_page == "FG":
                 st.rerun()
 
 # ##############################################################################
-# # 4. ฝ่ายบริหารข้อมูลคลัง (ERP) - แสดงตารางสรุป, ลบ/แก้ไขข้อมูล และ Export
+# # 4. ฝ่ายบริหารข้อมูลคลัง (ERP) - แสดงตารางสรุป, ลบแถวข้อมูล และ Export
 # # ############################################################################
 elif st.session_state.current_page == "ERP":
     st.subheader("หน้าจอส่วนงาน: ฝ่ายบริหารข้อมูลคลังสินค้า (ERP Administrator)")
@@ -262,37 +262,28 @@ elif st.session_state.current_page == "ERP":
     st.dataframe(df_latest, use_container_width=True)
     
     st.write("---")
-    st.write("### 🛠️ เครื่องมือสำหรับผู้จัดการระบบ: ลบข้อมูลเพื่อแก้ไขใหม่")
+    st.write("### 🛠️ เครื่องมือสำหรับผู้จัดการระบบ: ลบข้อมูลออกจากตาราง")
     
-    # ดึงรายการ JobID ทั้งหมดที่มีในตารางมาให้เลือก
     if not df_latest.empty:
-        job_to_delete = st.selectbox("เลือกรหัสใบงาน (JobID) ที่ต้องการลบเพื่อส่งกลับไปแก้ไขข้อมูลใหม่:", ["-- เลือกใบงาน --"] + list(df_latest['JobID'].unique()))
+        # ดึงรายการ JobID ทั้งหมดมาให้เลือกลบ
+        job_to_delete = st.selectbox("เลือกรหัสใบงาน (JobID) ที่ต้องการลบทิ้งถาวร:", ["-- เลือกใบงาน --"] + list(df_latest['JobID'].unique()))
         
-        if st.button("❌ ยืนยันการลบล้างข้อมูลใบงานนี้", type="secondary", use_container_width=True):
+        if st.button("❌ ยืนยันการลบใบงานนี้ออกจากระบบ", type="primary", use_container_width=True):
             if job_to_delete == "-- เลือกใบงาน --":
-                st.error("กรุณาเลือกรหัสใบงาน (JobID) ที่ต้องการทำรายการก่อนครับ")
+                st.error("กรุณาเลือกรหัสใบงาน (JobID) ที่ต้องการลบก่อนครับ")
             else:
                 # ค้นหาตำแหน่งแถวของ JobID ที่เลือก
                 matching_rows = df_latest[df_latest['JobID'] == job_to_delete].index
                 
                 if not matching_rows.empty:
-                    idx = matching_rows
+                    # สั่งลบแถวข้อมูลนั้นออกจาก DataFrame ทันที (ตารางจะหายไปด้วย)
+                    df_latest = df_latest.drop(matching_rows)
                     
-                    # รีเซ็ตค่าสเตตัสและล้างชื่อพนักงาน QC / FG ทั้งหมดให้เด้งกลับไปเริ่มต้นใหม่
-                    df_latest.loc[idx, 'QC_Status'] = 'รอ QC ตรวจสอบ (Pending QC)'
-                    df_latest.loc[idx, 'QC_Name'] = '-'
-                    df_latest.loc[idx, 'FG_Status'] = '-'
-                    df_latest.loc[idx, 'FG_Name'] = '-'
-                    df_latest.loc[idx, 'FG_Qty'] = 0
-                    
-                    # หรือหากคุณต้องการลบแถวนั้นทิ้งไปเลยจากตาราง ให้เปลี่ยนไปเปิดใช้งานบรรทัดด้านล่างนี้แทนครับ:
-                    # df_latest = df_latest.drop(idx)
-                    
-                    # บันทึกข้อมูลที่รีเซ็ตแล้วกลับเข้าระบบหลัก
+                    # บันทึกข้อมูลที่ลบแล้วกลับเข้าระบบหลัก
                     st.session_state.current_db = df_latest
                     save_data(df_latest)
                     
-                    st.success(f"ลบล้างข้อมูลของใบงาน {job_to_delete} เรียบร้อย! ข้อมูลถูกส่งกลับไปรอการตรวจสอบใหม่แล้ว")
+                    st.success(f"ลบข้อมูลใบงาน {job_to_delete} ออกจากตารางระบบเรียบร้อยแล้ว!")
                     st.rerun()
     else:
         st.info("ไม่มีข้อมูลใบงานในระบบขณะนี้")
