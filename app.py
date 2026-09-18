@@ -164,36 +164,45 @@ if st.session_state.current_page == "PD":
 # 2. แผนกควบคุมคุณภาพ (QC)
 # ----------------------------------------------------
 elif st.session_state.current_page == "QC":
-    st.subheader("🔍 ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
-    df = st.session_state.current_db
+    st.subheader("ส่วนงานฝั่งตรวจสอบคุณภาพ (Quality Control - QC): ตรวจสอบและอัปเดตสเปกสินค้า")
+    df = st.session_state.current_db.copy() # ใช้ .copy() เพื่อป้องกันข้อมูลผูกติดกัน (Mutation)
     qc_pending_list = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)']
-    
+
     if qc_pending_list.empty:
-        st.info("ไม่มีรายการสินค้าค้างตรวจสอบคุณภาพในระบบขณะนี้")
+        st.info("ไม่มีรายการสินค้าค้างตรวจสอบในระบบขณะนี้")
     else:
-        st.write("### 📋 รายการสินค้าค้างตรวจสเปก")
-        qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key="qc_global_name")
-        
+        st.write("### รายการสินค้าค้างตรวจสอบ")
+        qc_name = st.text_input("ชื่อเจ้าหน้าที่/พนักงานตรวจสอบคุณภาพ (QC):", key="qc_global_name")
+
         options_map_qc = {}
         for _, r in qc_pending_list.iterrows():
-            display_text = f"คิวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | จำนวน: {r['PD_Qty']:,} ชิ้น (รอบ: {r['PD_Shift']})"
+            display_text = f"📦 ตัวงาน: {r['JobID']} | รหัสสินค้า: {r['SKU']} | จำนวน: {r['PD_Qty']} | ชั้น (ตอน): {r['PD_Shift']}"
             options_map_qc[display_text] = r['JobID']
-            
-        selected_qc_jobs = st.multiselect("เลือกรายการรหัสสินค้าที่ต้องการอนุมัติผ่านเกณฑ์พร้อมกัน:", list(options_map_qc.keys()))
-        
+
+        selected_qc_jobs = st.multiselect("เลือกงานจากรหัสสินค้าเพื่ออนุมัติสถานะพร้อมกัน:", list(options_map_qc.keys()))
+
         st.write("---")
-        if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ทุกรายการที่เลือก (Approve พร้อมกัน)", type="primary", use_container_width=True):
+        if st.button("อนุมัติสถานะคุณภาพ (Approve พร้อมกัน)", type="primary", use_container_width=True):
             if qc_name.strip() == "":
-                st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
+                st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการยืนยันข้อมูล")
             elif not selected_qc_jobs:
                 st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
             else:
                 for option in selected_qc_jobs:
                     job_id_extracted = options_map_qc[option]
                     idx = df[df['JobID'] == job_id_extracted].index
-                    df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
-                    df.at[idx, 'QC_Name'] = qc_name         
+                    
+                    # อัปเดตข้อมูลและเปลี่ยนสถานะส่งต่อให้ฝั่ง FG
+                    df.at[idx, 'QC_Status'] = 'ผ่านการอนุมัติ (Approved)'
+                    df.at[idx, 'QC_Name'] = qc_name
+                    df.at[idx, 'FG_Status'] = 'รอคลังรับเข้า (Pending FG)'
+                
+                # ทำการบันทึกค่ากลับเข้าระบบเซสชันหลักให้เหมือนรูปแบบของส่วนที่ 1
+                st.session_state.current_db = df
                 save_data(df)
+                
+                st.success("บันทึกผลการตรวจสอบคุณภาพ (QC) สำเร็จ และส่งต่อข้อมูลไปยังคลังสินค้าแล้ว!")
+                st.rerun()
                   
 # ----------------------------------------------------
 # # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - บันทึกและเปิดเอกสาร Job เพื่อตรวจนับและรับเข้าคลัง 100%
