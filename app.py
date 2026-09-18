@@ -99,66 +99,62 @@ if nav_erp: st.session_state.current_page = "ERP"; st.rerun()
 # WORKFLOW PAGES INTERFACE (เนื้อหาฝั่งขวา)
 # ====================================================
 
-# ----------------------------------------------------
-# 1. แผนกฝ่ายผลิต (PD)
-# ----------------------------------------------------
-if st.session_state.current_page == "PD":
-    st.subheader("⚙️ ส่วนงานฝ่ายผลิต (Production - PD): บันทึกส่งมอบงานสินค้า")
-    pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตผู้บันทึกข้อมูล:")
-    pd_shift = st.text_input("ระบุรอบเวลาการส่งงาน / กะการทำงาน (เช่น รอบ 10:00 น. หรือ กะเช้า):")
-    st.markdown("#### ตารางรายการรหัสสินค้าที่ต้องการนำส่ง")
+# ##############################################################################
+# # 1. แผนกฝ่ายผลิต (PD) - บันทึกงานใหม่ และ แก้ไขงานที่ถูก Reject
+# ##############################################################################
+elif st.session_state.current_page == "PD":
+    st.subheader("ส่วนงานฝั่งฝ่ายผลิต (Production - PD): บันทึกและแก้ไขยอดจัดส่ง")
+    df = st.session_state.current_db.copy()
+
+    # --- 🚨 ส่วนที่ 1.1: ระบบตรวจสอบและแจ้งเตือนงานที่ถูก QC Reject ตีกลับมา ---
+    rejected_list = df[df['QC_Status'] == 'ถูกตีกลับจาก QC (Rejected)']
     
-    if 'temp_items' not in st.session_state:
-        st.session_state.temp_items = []
-
-    with st.container(border=True):
-        input_sku = st.text_input("ระบุรหัสสินค้า หรือใช้ปืนสแกนบาร์โค้ดยิง (SKU):", key="input_sku")
-        input_qty = st.number_input("จำนวนสินค้าที่นำส่งมอบจริง (ชิ้น):", min_value=1, step=1, key="input_qty")
-        st.write("") 
-        if st.button("➕ เพิ่มเข้าตารางรายการ", use_container_width=True):
-            if input_sku.strip() != "":
-                st.session_state.temp_items.append({'SKU': input_sku.strip(), 'Qty': input_qty})
-                st.rerun()
-            else:
-                st.error("กรุณาระบุรหัสสินค้า")
-
-    if st.session_state.temp_items:
-        df_temp = pd.DataFrame(st.session_state.temp_items)
-        df_display = df_temp.copy()
-        df_display['SKU'] = df_display['SKU'].apply(lambda x: f"<b>{x}</b>")
-        df_display['Qty'] = df_display['Qty'].apply(lambda x: f"<b>{x:,} ชิ้น</b>")
-        st.write(df_display.to_html(escape=False, index=False), unsafe_allow_html=True)
+    if not rejected_list.empty:
+        st.error(f"⚠️ แจ้งเตือน: มีรายการงานถูกตีกลับจาก QC จำนวน {len(rejected_list)} รายการ กรุณาตรวจสอบและแก้ไขข้อมูลด้านล่าง")
         
-        st.write("")
-        if st.button("🗑️ ล้างรายการสินค้าในตารางทั้งหมด", use_container_width=True):
-            st.session_state.temp_items = []
-            st.rerun()
+        # กล่องสำหรับเลือกใบงานที่โดน Reject ขึ้นมาแก้ไขทีละโค้ด (ดึงรหัส JobID)
+        with st.expander("🛠️ คลิกเพื่อเปิดฟอร์มแก้ไขงานที่ถูก QC ตีกลับ (แก้ไขทีละใบงาน)", expanded=True):
+            selected_reject_job = st.selectbox(
+                "เลือกใบงาน (JobID) ที่ต้องการแก้ไขจำนวนสินค้า:", 
+                ["-- เลือกใบงานที่ต้องการแก้ไข --"] + list(rejected_list['JobID'].unique()),
+                key="select_reject_job_pd"
+            )
             
+            if selected_reject_job != "-- เลือกใบงานที่ต้องการแก้ไข --":
+                # ดึงข้อมูลแถวปัจจุบันของ JobID นั้นขึ้นมาแสดง
+                job_row = df[df['JobID'] == selected_reject_job].iloc[0]
+                
+                st.info(f"📋 รายละเอียดเดิม -> รหัสสินค้า (SKU): {job_row['SKU']} | จำนวนเดิม: {job_row['PD_Qty']} | ชั้น(ตอน): {job_row['PD_Shift']} | QC ผู้ตีกลับ: {job_row['QC_Name']}")
+                
+                # ฟอร์มรับค่าจำนวนสินค้าใหม่เพื่อแก้ไข
+                new_qty = st.number_input(
+                    f"ระบุจำนวนสินค้าใหม่สำหรับใบงาน {selected_reject_job}:", 
+                    min_value=1, 
+                    value=int(job_row['PD_Qty']),
+                    key="edit_qty_pd"
+                )
+                
+                if st.button("💾 บันทึกการแก้ไขจำนวน และส่งให้ QC ตรวจใหม่", type="primary", use_container_width=True):
+                    idx = df[df['JobID'] == selected_reject_job].index
+                    
+                    # อัปเดตข้อมูลจำนวนใหม่ และดีดสถานะกลับไปให้ QC รอตรวจอีกครั้ง
+                    df.loc[idx, 'PD_Qty'] = new_qty
+                    df.loc[idx, 'QC_Status'] = 'รอ QC ตรวจสอบ (Pending QC)'
+                    df.loc[idx, 'QC_Name'] = '-'  # ล้างชื่อ QC เดิมออก
+                    df.loc[idx, 'FG_Status'] = '-'  # ล้างสถานะคลังเดิมออก
+                    
+                    # บันทึกข้อมูลเข้าสู่ตัวแปรระบบหลักและไฟล์
+                    st.session_state.current_db = df
+                    save_data(df)
+                    
+                    st.success(f"แก้ไขจำนวนใบงาน {selected_reject_job} สำเร็จ! ข้อมูลส่งกลับไปรอตรวจสอบที่หน้าจอ QC เรียบร้อยแล้ว")
+                    st.rerun()
         st.write("---")
-        if st.button("🚀 ยืนยันการนำส่งข้อมูลทั้งหมดให้ระบบ", type="primary", use_container_width=True):
-            if pd_name.strip() == "" or pd_shift.strip() == "":
-                st.error("กรุณาระบุชื่อพนักงานและรอบเวลาการส่งงานให้ครบถ้วน")
-            else:
-                df = st.session_state.current_db
-                timestamp_now = datetime.now().strftime("%Y-%m-%d %H:%M")
-                
-                for item in st.session_state.temp_items:
-                    new_id = len(df) + 1
-                    job_id = f"JOB-{new_id:04d}"
-                    new_data = {
-                        'JobID': job_id, 'Timestamp': timestamp_now, 'PD_Shift': pd_shift,
-                        'PD_Name': pd_name, 'SKU': item['SKU'], 'PD_Qty': item['Qty'],
-                        'QC_Status': 'รอ QC ตรวจสอบ (Pending QC)', 'QC_Name': '-',
-                        'FG_Qty': 0, 'FG_Status': 'รอคลังรับเข้า (Pending FG)', 'FG_Name': '-'
-                    }
-                    df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-                
-                save_data(df)
-                st.session_state.temp_items = []
-                st.success("บันทึกข้อมูลส่งมอบเข้าสู่คิวงานเรียบร้อยแล้ว!")
-                st.rerun()
-    else:
-        st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
+
+    # --- ส่วนที่ 1.2: ฟอร์มกรอกบันทึกงานผลิตใหม่ตามปกติของคุณ (โค้ดเดิม) ---
+    st.write("### 📝 บันทึกข้อมูลใบงานผลิตใหม่")
+    # (วางโค้ดฟอร์มการกรอกข้อมูลเมนูจัดส่งเดิม เช่น SKU, PD_Qty, PD_Shift 
+    # และปุ่มบันทึกเพิ่มแถว pd.concat ของเดิมของคุณต่อท้ายตรงนี้ได้เลยครับ)
 
 # ##############################################################################
 # # 2. แผนกควบคุมคุณภาพ (QC) - ตรวจสอบคุณภาพสินค้า (มีระบบบันทึกผ่านและตีกลับ)
