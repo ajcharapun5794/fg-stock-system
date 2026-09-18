@@ -233,15 +233,16 @@ elif st.session_state.current_page == "FG":
                 for option in selected_fg_jobs:
                     job_id_extracted = options_map_fg[option]
                     matching_rows = df[df['JobID'] == job_id_extracted].index
+                    
                     if not matching_rows.empty:
                         idx = matching_rows
                         
-                        # อัปเดตสถานะและชื่อผู้รับเข้าในคลังสินค้า
-                        df.at[idx, 'FG_Status'] = 'รับสินค้าเข้าคลังแล้ว (Approved)'
-                        df.at[idx, 'FG_Name'] = fg_name
+                        # เปลี่ยนมาใช้ .loc แทน .at เพื่อรองรับ index แบบกลุ่มและป้องกัน InvalidIndexError
+                        df.loc[idx, 'FG_Status'] = 'รับสินค้าเข้าคลังแล้ว (Approved)'
+                        df.loc[idx, 'FG_Name'] = fg_name
                         
-                        # บรรทัดที่เพิ่มเข้ามา: ดึงค่าจากช่อง PD_Qty มาใส่ช่อง FG_Qty ให้ได้ยอดตรงกัน 100%
-                        df.at[idx, 'FG_Qty'] = df.at[idx[0], 'PD_Qty']
+                        # ดึงค่าจำนวนการผลิตของงานตัวนั้นมาหยอดใส่สต็อก FG ให้เท่ากันอย่างปลอดภัย
+                        df.loc[idx, 'FG_Qty'] = df.loc[idx, 'PD_Qty']
                 
                 st.session_state.current_db = df
                 save_data(df)
