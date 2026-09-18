@@ -188,12 +188,25 @@ elif st.session_state.current_page == "QC":
             elif not selected_qc_jobs:
                 st.error("กรุณาเลือกรายการสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
             else:
-                for option in selected_qc_jobs:
+           for option in selected_qc_jobs:
                     job_id_extracted = options_map_qc[option]
                     idx = df[df['JobID'] == job_id_extracted].index
+                    
+                    # 1. อัปเดตสถานะของฝั่ง QC
                     df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
                     df.at[idx, 'QC_Name'] = qc_name
+                    
+                    # 2. เพิ่มคีย์สำคัญนี้เพื่อให้ข้อมูลเด้งไปปรากฏในส่วนที่ 3 (FG)
+                    df.at[idx, 'FG_Status'] = 'รอคลังรับเข้า (Pending FG)'
+                
+                # 3. อัปเดตข้อมูลกลับเข้าสู่ตัวแปรระบบหลัก (เลียนแบบส่วนที่ 1)
+                st.session_state.current_db = df
+                
+                # 4. บันทึกข้อมูลลงฐานข้อมูล/ไฟล์
                 save_data(df)
+                
+                st.success("อนุมัติงาน QC สำเร็จ ข้อมูลถูกส่งต่อไปยังแผนกคลังสินค้า (FG) แล้ว!")
+                st.rerun()
 # ----------------------------------------------------
 # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - 🔥 ซ่อมระบบล็อคเป้าหมาย .loc ดักจับพิกัดตารางแบบยกแผงสำเร็จ 100%
 # ----------------------------------------------------
