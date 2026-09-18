@@ -193,9 +193,7 @@ elif st.session_state.current_page == "QC":
                     idx = df[df['JobID'] == job_id_extracted].index
                     df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
                     df.at[idx, 'QC_Name'] = qc_name
-                save_data(df)st.session_state.temp_items = []
-                st.success("บันทึกข้อมูลส่งมอบเข้าสู่คิวงานเรียบร้อยแล้ว!")
-                st.rerun()
+                save_data(df)
 # ----------------------------------------------------
 # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - 🔥 ซ่อมระบบล็อคเป้าหมาย .loc ดักจับพิกัดตารางแบบยกแผงสำเร็จ 100%
 # ----------------------------------------------------
