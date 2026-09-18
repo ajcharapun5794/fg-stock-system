@@ -158,9 +158,37 @@ if st.session_state.current_page == "PD":
         st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")
 
 # ----------------------------------------------------
-# 2. แผนกควบคุมคุณภาพ (QC) - เลือกหลายโค้ด ผ่านยกแผงในปุ่มเดียว
-# ----------------------------------------------------
-elif st.session_state.current_page == "QC":
+elif st.session_state.current_page == "qc":
+    st.subheader("ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
+    qc_pending_list = df[df['QC_Status'] == 'Pending QC']
+
+    if qc_pending_list.empty:
+        st.info("ไม่มีรายการสินค้าค้างตรวจสเปก")
+    else:
+        st.write("### รายการสินค้าค้างตรวจสเปก")
+        qc_name = st.text_input("ชื่อเจ้าหน้าที่พนักงานตรวจสอบคุณภาพ (QC):", key="fg_global_name")
+
+        options_map_qc = {}
+        for r in qc_pending_list.to_dict('records'):
+            display_text = f"ใบงาน: {r['job_id']} | รหัสสินค้า: {r['product_id']} | จำนวน: {r['qty']} ชิ้น (รอบ: {r['round_time']})"
+            options_map_qc[display_text] = (r['job_id'], r['refrun_id'])
+
+        selected_qc_jobs = st.multiselect("คลิกเลือกตัวงานสินค้าที่ตรวจสอบผ่านเกณฑ์พร้อมกันหลายรายการ:", list(options_map_qc.keys()))
+
+        st.write("---")
+        
+        # 1. เช็คเงื่อนไขล่วงหน้าว่ากรอกข้อมูลครบหรือยัง (ชื่อไม่ว่าง และเลือกรายการแล้ว)
+        is_button_disabled = not (qc_name.strip() and selected_qc_jobs)
+
+        # 2. ปรับปุ่มใช้ disabled ควบคุม เพื่อไม่ให้ค่าหลุดเวลา Streamlit Rerun
+        if st.button(
+            "อนุมัติมาตรฐานผ่านเกณฑ์ตามรายการที่เลือก (Approve ยกแผง)", 
+            type="primary", 
+            use_container_width=True,
+            disabled=is_button_disabled
+        ):
+            for option in selected_qc_jobs:
+                job_id, refrun_id = options_map_qc[option]
     st.subheader("🔍 ส่วนงานฝ่ายควบคุมคุณภาพ (Quality Control - QC): ตรวจสอบเกณฑ์เกรดสเปกสินค้า")
     df = st.session_state.current_db
     qc_pending_list = df[df['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)']
