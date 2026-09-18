@@ -45,101 +45,46 @@ count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรั�
 # ====================================================
 # SIDEBAR PORTAL: คืนสิทธิ์ระบบ 4 แถบกล่องไฟสี เขียว-แดง แจ้งเตือนเสถียร 100%
 # ====================================================
-st.sidebar.markdown("### เมนูระบบงานหลัก")
+st.sidebar.markdown("## เมนูระบบงานหลัก")
 
-df_current = st.session_state.current_db
+# กำหนดตรรกะสีและข้อความฟ้องสถานะ (มีงาน = แดงอ่อน #FFEBEE / ไม่มีงาน = เขียวอ่อน #E8F5E9)
+txt_qc_status = f"🚨 มีงานค้าง {count_qc} รายการ" if count_qc > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
+color_qc_bg = "#FFEBEE" if count_qc > 0 else "#E8F5E9"
+color_qc_txt = "#B71C1C" if count_qc > 0 else "#1B5E20"
+color_qc_border = "#EF9A9A" if count_qc > 0 else "#A5D6A7"
 
-# 1. คำนวณจำนวนรายการค้างและงานที่โดน QC Reject เพื่อเปลี่ยนสีปุ่ม
-count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
-count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
-count_pd_reject = len(df_current[df_current['QC_Status'] == 'ถูกตีกลับจาก QC (Rejected)'])
+txt_fg_status = f"🚨 มีงานค้าง {count_fg} รายการ" if count_fg > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
+color_fg_bg = "#FFEBEE" if count_fg > 0 else "#E8F5E9"
+color_fg_txt = "#B71C1C" if count_fg > 0 else "#1B5E20"
+color_fg_border = "#EF9A9A" if count_fg > 0 else "#A5D6A7"
 
-# 2. ตั้งค่าข้อความแจ้งเตือนปุ่มผลิต (PD)
-if count_pd_reject > 0:
-    txt_pd_status = f"🔴 1. แผนกฝ่ายผลิต (PD) - มีงานต้องแก้ไข ({count_pd_reject} รายการ)"
-    color_pd_bg = "#FFF5F5"
-    color_pd_txt = "#E53E3E"
-    color_pd_border = "#FEB2B2"
-else:
-    txt_pd_status = "🟢 1. แผนกฝ่ายผลิต (PD)"
-    color_pd_bg = "#E8F5E9"
-    color_pd_txt = "#2E7D32"
-    color_pd_border = "#A5D6A7"
-
-# 3. ตั้งค่าข้อความแจ้งเตือนปุ่มควบคุมคุณภาพ (QC)
-if count_qc > 0:
-    txt_qc_status = f"🟠 2. แผนกควบคุมคุณภาพ (QC) - มีงานค้าง ({count_qc} รายการ)"
-    color_qc_bg = "#FFF9DB"
-    color_qc_txt = "#F08C00"
-    color_qc_border = "#FFE066"
-else:
-    txt_qc_status = "🟢 2. แผนกควบคุมคุณภาพ (QC)"
-    color_qc_bg = "#E8F5E9"
-    color_qc_txt = "#2E7D32"
-    color_qc_border = "#A5D6A7"
-
-# 4. ตั้งค่าข้อความแจ้งเตือนปุ่มคลังสินค้า (FG)
-if count_fg > 0:
-    txt_fg_status = f"💗 3. แผนกคลังสินค้า (FG) - มีงานค้าง ({count_fg} รายการ)"
-    color_fg_bg = "#FCE4EC"
-    color_fg_txt = "#C2185B"
-    color_fg_border = "#F48FB1"
-else:
-    txt_fg_status = "🟢 3. แผนกคลังสินค้า (FG)"
-    color_fg_bg = "#E8F5E9"
-    color_fg_txt = "#2E7D32"
-    color_fg_border = "#A5D6A7"
-
-# 5. แทรก CSS สไตล์เพื่อควบคุมสีปุ่มแบบไดนามิก (ชิดซ้ายสุด ปลอดภัย 100%)
+# แทรกคำสั่ง CSS เพื่อสร้างกล่องป้ายไฟสีอย่างเป็นทางการ มั่นคง ไม่รวนข้ามบราวเซอร์
 st.sidebar.markdown(f"""
-<style>
-div[data-testid="stSidebarNav"] {{display: none;}}
-div.stButton > button[key="btn_pd"] {{
-background-color: {color_pd_bg} !important;
-color: {color_pd_txt} !important;
-border: 2px solid {color_pd_border} !important;
-font-weight: bold !important;
-border-radius: 8px;
-margin-bottom: 10px;
-width: 100%;
-}}
-div.stButton > button[key="btn_qc"] {{
-background-color: {color_qc_bg} !important;
-color: {color_qc_txt} !important;
-border: 2px solid {color_qc_border} !important;
-font-weight: bold !important;
-border-radius: 8px;
-margin-bottom: 10px;
-width: 100%;
-}}
-div.stButton > button[key="btn_fg"] {{
-background-color: {color_fg_bg} !important;
-color: {color_fg_txt} !important;
-border: 2px solid {color_fg_border} !important;
-font-weight: bold !important;
-border-radius: 8px;
-margin-bottom: 10px;
-width: 100%;
-}}
-</style>
+    <style>
+    .nav-badge {{ padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-top: 12px; margin-bottom: 4px; font-size: 13px; }}
+    .c-green {{ background-color: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }}
+    .c-blue {{ background-color: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }}
+    .c-qc-dynamic {{ background-color: {color_qc_bg}; color: {color_qc_txt}; border: 1px solid {color_qc_border}; }}
+    .c-fg_dynamic {{ background-color: {color_fg_bg}; color: {color_fg_txt}; border: 1px solid {color_fg_border}; }}
+    div[data-testid="stSidebarUserContent"] button {{ font-weight: bold !important; font-size: 14px !important; margin-bottom: 10px !important; }}
+    </style>
 """, unsafe_allow_html=True)
 
-# 6. แสดงผลปุ่มเมนูหลักระบบงานลงตาราง Sidebar
-if st.sidebar.button(txt_pd_status, key="btn_pd", use_container_width=True):
-    st.session_state.current_page = "PD"
-    st.rerun()
+# แถบที่ 1: ฝ่ายผลิต (PD)
+st.sidebar.markdown('<div class="nav-badge c-green">1. แผนกฝ่ายผลิต (PD) <br><small>🟢 สถานะปกติ</small></div>', unsafe_allow_html=True)
+nav_pd = st.sidebar.button("👉 เปิดหน้าจอ ฝ่ายผลิต", key="go_pd", use_container_width=True)
 
-if st.sidebar.button(txt_qc_status, key="btn_qc", use_container_width=True):
-    st.session_state.current_page = "QC"
-    st.rerun()
+# แถบที่ 2: ควบคุมคุณภาพ (QC)
+st.sidebar.markdown(f'<div class="nav-badge c-qc-dynamic">2. แผนกควบคุมคุณภาพ (QC) <br><small>{txt_qc_status}</small></div>', unsafe_allow_html=True)
+nav_qc = st.sidebar.button("👉 เปิดหน้าจอ ตรวจสเปก QC", key="go_qc", use_container_width=True)
 
-if st.sidebar.button(txt_fg_status, key="btn_fg", use_container_width=True):
-    st.session_state.current_page = "FG"
-    st.rerun()
+# แถบที่ 3: คลังสินค้าสำเร็จรูป (FG)
+st.sidebar.markdown(f'<div class="nav-badge c-fg_dynamic">3. แผนกคลังสินค้า (FG) <br><small>{txt_fg_status}</small></div>', unsafe_allow_html=True)
+nav_fg = st.sidebar.button("👉 เปิดหน้าจอ ตรวจนับของ FG", key="go_fg", use_container_width=True)
 
-if st.sidebar.button("📊 4. ฝ่ายบริหารข้อมูลคลัง (ERP)", use_container_width=True):
-    st.session_state.current_page = "ERP"
-    st.rerun()
+# แถบที่ 4: แอดมินสรุปยอด ERP
+st.sidebar.markdown('<div class="nav-badge c-blue">4. ฝ่ายบริหารข้อมูลคลัง (ERP) <br><small>📊 สรุปยอดข้อมูลรวม</small></div>', unsafe_allow_html=True)
+nav_erp = st.sidebar.button("👉 เปิดรายงานสรุปยอดลง ERP", key="go_erp", use_container_width=True)
 
 # ระบบสลับเปลี่ยนหน้าจอ
 if 'current_page' not in st.session_state:
