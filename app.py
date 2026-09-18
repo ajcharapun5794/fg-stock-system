@@ -48,6 +48,12 @@ count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรั�
 st.sidebar.markdown("## เมนูระบบงานหลัก")
 
 # กำหนดตรรกะสีและข้อความฟ้องสถานะ (มีงาน = แดงอ่อน #FFEBEE / ไม่มีงาน = เขียวอ่อน #E8F5E9)
+txt_pd_status = f"🚨 มีงานค้าง {count_qc} รายการ" if count_pd > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
+color_pd_bg = "#FFEBEE" if count_qc > 0 else "#E8F5E9"
+color_pd_txt = "#B71C1C" if count_qc > 0 else "#1B5E20"
+color_pd_border = "#EF9A9A" if count_qc > 0 else "#A5D6A7"
+
+# กำหนดตรรกะสีและข้อความฟ้องสถานะ (มีงาน = แดงอ่อน #FFEBEE / ไม่มีงาน = เขียวอ่อน #E8F5E9)
 txt_qc_status = f"🚨 มีงานค้าง {count_qc} รายการ" if count_qc > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
 color_qc_bg = "#FFEBEE" if count_qc > 0 else "#E8F5E9"
 color_qc_txt = "#B71C1C" if count_qc > 0 else "#1B5E20"
