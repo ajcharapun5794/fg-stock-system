@@ -192,24 +192,9 @@ elif st.session_state.current_page == "QC":
                     job_id_extracted = options_map_qc[option]
                     idx = df[df['JobID'] == job_id_extracted].index
                     df.at[idx, 'QC_Status'] = 'สเปกผ่านแล้ว (Approved)'
-                    df.at[idx, 'QC_Name'] = qc_name
-        for item in st.session_state.temp_items:
-                    new_id = len(df) + 1
-                    job_id = f"JOB-{new_id:04d}"
-                    new_data = {
-                        'JobID': job_id, 'Timestamp': timestamp_now, 'PD_Shift': pd_shift,
-                        'PD_Name': pd_name, 'SKU': item['SKU'], 'PD_Qty': item['Qty'],
-                        'QC_Status': 'รอ QC ตรวจสอบ (Pending QC)', 'QC_Name': '-',
-                        'FG_Qty': 0, 'FG_Status': 'รอคลังรับเข้า (Pending FG)', 'FG_Name': '-'
-                    }
-                    df = pd.concat([df, pd.DataFrame([new_data])], ignore_index=True)
-                
+                    df.at[idx, 'QC_Name'] = qc_name         
                 save_data(df)
-                st.session_state.temp_items = []
-                st.success("บันทึกข้อมูลส่งมอบเข้าสู่คิวงานเรียบร้อยแล้ว!")
-                st.rerun()
-    else:
-        st.info("คำแนะนำ: ยังไม่มีรายการสินค้าในตารางชั่วคราว กรุณาระบุรหัสสินค้าด้านบนเพื่อดำเนินการเพิ่มข้อมูล")        
+                  
 # ----------------------------------------------------
 # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - 🔥 ซ่อมระบบล็อคเป้าหมาย .loc ดักจับพิกัดตารางแบบยกแผงสำเร็จ 100%
 # ----------------------------------------------------
