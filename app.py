@@ -38,38 +38,42 @@ if 'current_db' not in st.session_state:
 
 df_current = st.session_state.current_db
 
-# คำนวณจำนวนงานค้างเพื่ออัปเดตสถานะป้ายไฟแจ้งเตือนสีเขียว/สีแดง
-count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
-count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
+# คำนวณจำนวนรายการค้างเพื่อเปลี่ยนสเตตัสป้ายไฟแจ้งเตือนสีเขียว/สีแดง
+    count_qc = len(df_current[df_current['QC_Status'] == 'รอ QC ตรวจสอบ (Pending QC)'])
+    count_fg = len(df_current[df_current['FG_Status'] == 'รอคลังรับเข้า (Pending FG)'])
+    count_pd_reject = len(df_current[df_current['QC_Status'] == 'ถูกตีกลับจาก QC (Rejected)'])
 
-# ====================================================
-# SIDEBAR PORTAL: คืนสิทธิ์ระบบ 4 แถบกล่องไฟสี เขียว-แดง แจ้งเตือนเสถียร 100%
-# ====================================================
-st.sidebar.markdown("## เมนูระบบงานหลัก")
+    # SIDEBAR PORTAL: ดึงสิทธิ์ระบบ 4 แถบกล่องไฟสี่สี เขียว-แดง แจ้งเตือนเสถียร 100%
+    st.sidebar.markdown("## เมนูระบบงานหลัก")
 
-# กำหนดตรรกะสีและข้อความฟ้องสถานะ (มีงาน = แดงอ่อน #FFEBEE / ไม่มีงาน = เขียวอ่อน #E8F5E9)
-txt_qc_status = f"🚨 มีงานค้าง {count_qc} รายการ" if count_qc > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
-color_qc_bg = "#FFEBEE" if count_qc > 0 else "#E8F5E9"
-color_qc_txt = "#B71C1C" if count_qc > 0 else "#1B5E20"
-color_qc_border = "#EF9A9A" if count_qc > 0 else "#A5D6A7"
+    # กำหนดตรรกะสีและข้อความฟ้องสถานะ (มีงาน - แดงอ่อน #FFEBEB / ไม่มีงาน - เขียวอ่อน #E8F5E9)
+    txt_pd_status = f"🚨 มีงานต้องแก้ไข {count_pd_reject} รายการ" if count_pd_reject > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
+    color_pd_bg = "#FFEBEB" if count_pd_reject > 0 else "#E8F5E9"
+    color_pd_txt = "#B71C1C" if count_pd_reject > 0 else "#1B5E20"
+    color_pd_border = "#FF9A9A" if count_pd_reject > 0 else "#A5D6A7"
 
-txt_fg_status = f"🚨 มีงานค้าง {count_fg} รายการ" if count_fg > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
-color_fg_bg = "#FFEBEE" if count_fg > 0 else "#E8F5E9"
-color_fg_txt = "#B71C1C" if count_fg > 0 else "#1B5E20"
-color_fg_border = "#EF9A9A" if count_fg > 0 else "#A5D6A7"
+    txt_qc_status = f"🚨 มีงานค้าง {count_qc} รายการ" if count_qc > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
+    color_qc_bg = "#FFEBEB" if count_qc > 0 else "#E8F5E9"
+    color_qc_txt = "#B71C1C" if count_qc > 0 else "#1B5E20"
+    color_qc_border = "#FF9A9A" if count_qc > 0 else "#A5D6A7"
 
-# แทรกคำสั่ง CSS เพื่อสร้างกล่องป้ายไฟสีอย่างเป็นทางการ มั่นคง ไม่รวนข้ามบราวเซอร์
-st.sidebar.markdown(f"""
-    <style>
-    .nav-badge {{ padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-top: 12px; margin-bottom: 4px; font-size: 13px; }}
-    .c-green {{ background-color: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }}
-    .c-blue {{ background-color: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }}
-    .c-qc-dynamic {{ background-color: {color_qc_bg}; color: {color_qc_txt}; border: 1px solid {color_qc_border}; }}
-    .c-fg_dynamic {{ background-color: {color_fg_bg}; color: {color_fg_txt}; border: 1px solid {color_fg_border}; }}
-    div[data-testid="stSidebarUserContent"] button {{ font-weight: bold !important; font-size: 14px !important; margin-bottom: 10px !important; }}
-    </style>
-""", unsafe_allow_html=True)
+    txt_fg_status = f"🚨 มีงานค้าง {count_fg} รายการ" if count_fg > 0 else "🟢 เคลียร์หมด ไม่มีงานค้าง"
+    color_fg_bg = "#FFEBEB" if count_fg > 0 else "#E8F5E9"
+    color_fg_txt = "#B71C1C" if count_fg > 0 else "#1B5E20"
+    color_fg_border = "#FF9A9A" if count_fg > 0 else "#A5D6A7"
 
+    # แทรกคำสั่ง CSS เพื่อสร้างกล่องป้ายไฟสีอย่างเป็นทางการ มั่นคง ไม่รวนข้ามบราวเซอร์
+    st.sidebar.markdown(f"""
+        <style>
+        .nav-badge {{ padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; margin-top: 12px; margin-bottom: 4px; font-size: 13px; }}
+        .c-green {{ background-color: #E8F5E9; color: #1B5E20; border: 1px solid #A5D6A7; }}
+        .c-blue {{ background-color: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }}
+        .pd-dynamic {{ background-color: {color_pd_bg}; color: {color_pd_txt}; border: 1px solid {color_pd_border}; }}
+        .qc-dynamic {{ background-color: {color_qc_bg}; color: {color_qc_txt}; border: 1px solid {color_qc_border}; }}
+        .fg-dynamic {{ background-color: {color_fg_bg}; color: {color_fg_txt}; border: 1px solid {color_fg_border}; }}
+        div[data-testid="stSidebarUserContent"] button {{ font-weight: bold !important; font-size: 14px !important; margin-bottom: 10px !important; }}
+        </style>
+    """, unsafe_allow_html=True)
 # แถบที่ 1: ฝ่ายผลิต (PD)
 st.sidebar.markdown('<div class="nav-badge c-green">1. แผนกฝ่ายผลิต (PD) <br><small>🟢 สถานะปกติ</small></div>', unsafe_allow_html=True)
 nav_pd = st.sidebar.button("👉 เปิดหน้าจอ ฝ่ายผลิต", key="go_pd", use_container_width=True)
