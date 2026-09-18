@@ -180,16 +180,21 @@ elif st.session_state.current_page == "QC":
         
         st.write("---")
         col_qc_act1, col_qc_act2 = st.columns(2)
-        with col_qc_act1:
-            if st.button("✅ อนุมัติมาตรฐานผ่านเกณฑ์ทุกรายการที่เลือก (Approve ยกแผง)", type="primary", use_container_width=True):
-                if qc_name.strip() == "":
-                    st.error("กรุณาระบุชื่อพนักงาน QC ก่อนทำการกดยืนยันข้อมูล")
-                elif not selected_qc_jobs:
-                    st.error("กรุณาคลิกเลือกรายการคิวงานสินค้าที่ต้องการอนุมัติอย่างน้อย 1 รายการ")
-                else:
-                    for option in selected_qc_jobs:
-                        job_id_extracted = options_map_qc[option]
-                        # ----------------------------------------------------
+      # 1. เช็คเงื่อนไขล่วงหน้าก่อนว่ากรอกข้อมูลครบหรือยัง
+# (เช็คว่า qc_name ไม่ว่าง และ selected_qc_jobs ไม่เป็นค่าว่าง)
+is_button_disabled = not (qc_name.strip() and selected_qc_jobs)
+
+# 2. ปรับตัวปุ่มให้ลบการเช็ค if ซ้อนด้านในออก แล้วใช้ disabled ควบคุมแทน
+if st.button(
+    "อนุมัติมาตรฐานผ่านเกณฑ์ตามรายการที่เลือก (Approve ยกแผง)", 
+    type="primary", 
+    use_container_width=True,
+    disabled=is_button_disabled  # ปุ่มจะกดได้ก็ต่อเมื่อกรอกชื่อและเลือกรายการแล้วเท่านั้น
+):
+    # เมื่อกดปุ่มแล้ว ให้ระบบทำงานบันทึกข้อมูลและส่งต่อไป FG ได้ทันที
+    for option in selected_qc_jobs:
+        job_id, refrun_id = options_map_qc[option]
+        # ... (โค้ดส่วนบันทึกข้อมูลเดิมของคุณรันต่อตรงนี้ได้เลย) ...
 # 3. แผนกคลังสินค้าสำเร็จรูป (FG) - เลือกหลายโค้ด อนุมัติรับงานยกแผงปุ่มเดียวส่งต่อด่าน 4 ได้จริง 100%
 # ----------------------------------------------------
 elif st.session_state.current_page == "FG":
