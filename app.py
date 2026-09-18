@@ -139,12 +139,12 @@ if st.session_state.current_page == "PD":
     with col_head1:
         pd_name = st.text_input("ชื่อพนักงานฝ่ายผลิตผู้บันทึก:", key="pd_operator_name")
     with col_head2:
-        # ดึงวันที่ปัจจุบันจัดฟอร์แมตผ่านไลบรารีของระบบคุณเพื่อป้องกัน AttributeError 
+        # ลบคำว่า (พิมพ์คีย์เองได้) ออกเรียบร้อยแล้ว
         now_date = datetime.now().strftime("%Y-%m-%d")
-        time_input = st.text_input("วันที่บันทึกข้อมูล (พิมพ์คีย์เองได้):", value=now_date, key="pd_time_input")
+        time_input = st.text_input("วันที่บันทึกข้อมูล:", value=now_date, key="pd_time_input")
         
-    # เปลี่ยนเป็นช่องกรอกข้อความอิสระตามที่คุณต้องการเรียบร้อยครับ
-    shift_input = st.text_input("ชั้น (ตอน) / กะการทำงาน (พิมพ์เวลาคีย์เองได้):", value="08.00", key="pd_shift_input")
+    # ลบคำว่า (พิมพ์เวลาคีย์เองได้) ออกเรียบร้อยแล้ว
+    shift_input = st.text_input("ชั้น (ตอน) / กะการทำงาน:", value="08.00", key="pd_shift_input")
 
     st.write("---")
     st.write("#### 🛒 รายการสินค้าที่จะจัดส่ง (คีย์เพิ่มได้หลายโค้ดด้านล่างนี้)")
@@ -152,7 +152,8 @@ if st.session_state.current_page == "PD":
     if "pd_temp_items" not in st.session_state:
         st.session_state.pd_temp_items = pd.DataFrame(columns=['โค้ดสินค้า (SKU)', 'จำนวน'])
 
-    col_add1, col_add2, col_add3 = st.columns()
+    # 🛠️ แก้ไขบั๊กจุดที่ 155: ใส่เลข 3 เข้าไปในช่อง st.columns() เพื่อให้แสดง 3 คอลัมน์ได้ถูกต้อง
+    col_add1, col_add2, col_add3 = st.columns(3)
     with col_add1:
         sku_add = st.text_input("กรอกรหัสสินค้า (SKU):", key="sku_add_input")
     with col_add2:
